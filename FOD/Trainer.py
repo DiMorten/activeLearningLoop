@@ -10,9 +10,14 @@ from torchsummary import summary
 from tqdm import tqdm
 from os import replace
 from numpy.core.numeric import Inf
-from FOD.utils import get_losses, get_schedulers, create_dir
+from FOD.utils import get_losses, get_optimizer, get_schedulers, create_dir
 from FOD.FocusOnDepth import FocusOnDepth
-from FOD.ResUnet import ResUnetPlusPlus
+from FOD.FCNs import ResUnetPlusPlus
+import segmentation_models_pytorch as smp
+
+import ssl
+ssl._create_default_https_context = ssl._create_unverified_context
+
 class Trainer(object):
     def __init__(self, config):
         super().__init__()
@@ -22,18 +27,28 @@ class Trainer(object):
         self.device = torch.device(self.config['General']['device'] if torch.cuda.is_available() else "cpu")
         print("device: %s" % self.device)
         resize = config['Dataset']['transforms']['resize']
-        self.model = FocusOnDepth(
-                    image_size  =   (3,resize,resize),
-                    emb_dim     =   config['General']['emb_dim'],
-                    resample_dim=   config['General']['resample_dim'],
-                    read        =   config['General']['read'],
-                    nclasses    =   len(config['Dataset']['classes']) + 1,
-                    hooks       =   config['General']['hooks'],
-                    model_timm  =   config['General']['model_timm'],
-                    type        =   self.type,
-                    patch_size  =   config['General']['patch_size'],
-        )
+        if config['General']['model_type'] == 'FocusOnDepth':
+            self.model = FocusOnDepth(
+                        image_size  =   (3,resize,resize),
+                        emb_dim     =   config['General']['emb_dim'],
+                        resample_dim=   config['General']['resample_dim'],
+                        read        =   config['General']['read'],
+                        nclasses    =   len(config['Dataset']['classes']) + 1,
+                        hooks       =   config['General']['hooks'],
+                        model_timm  =   config['General']['model_timm'],
+                        type        =   self.type,
+                        patch_size  =   config['General']['patch_size'],
+            )
 
+        elif config['General']['model_type'] == 'unet':        
+            
+            self.model = smp.Unet('xception', encoder_weights='imagenet', in_channels=3,
+                encoder_depth=4, decoder_channels=[128, 64, 32, 16], classes=2)
+        elif config['General']['model_type'] == 'deeplab':        
+            
+            self.model = smp.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
+                classes=2)
+        
         '''
         self.model = ResUnetPlusPlus(
                     image_size  =   (3,resize,resize),
@@ -47,6 +62,17 @@ class Trainer(object):
                     patch_size  =   config['General']['patch_size'],
         )
         '''
+
+        '''
+        aux_params=dict(
+            dropout=0.5,               # dropout ratio, default is None
+            classes=2
+        )
+        '''
+
+        # self.model = smp.DeepLabV3Plus('xception', encoder_weights='imagenet', in_channels=3, 
+        #     encoder_depth=4, decoder_channels=[128, 64, 32, 16], classes=2)
+
         self.model.to(self.device)
         # print(self.model)
         # exit(0)
@@ -55,7 +81,7 @@ class Trainer(object):
         # exit(0)
 
         self.loss_depth, self.loss_segmentation = get_losses(config)
-        self.optimizer_backbone, self.optimizer_scratch = self.model.get_optimizer(config, self.model)
+        self.optimizer_backbone, self.optimizer_scratch = get_optimizer(config, self.model)
         self.schedulers = get_schedulers([self.optimizer_backbone, self.optimizer_scratch])
 
     def train(self, train_dataloader, val_dataloader):
@@ -83,7 +109,11 @@ class Trainer(object):
                     self.optimizer_backbone.zero_grad()
                 self.optimizer_scratch.zero_grad()
                 # forward + backward + optimizer
-                output_depths, output_segmentations = self.model(X)
+                if isinstance(self.model, FocusOnDepth):
+                    output_depths, output_segmentations = self.model(X)
+                else:
+                    output_depths, output_segmentations = (None, self.model(X))
+                
                 output_depths = output_depths.squeeze(1) if output_depths != None else None
 
                 Y_depths = Y_depths.squeeze(1) #1xHxW -> HxW
@@ -140,7 +170,11 @@ class Trainer(object):
             pbar.set_description("Validation")
             for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
                 X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)
-                output_depths, output_segmentations = self.model(X)
+                if isinstance(self.model, FocusOnDepth):
+                    output_depths, output_segmentations = self.model(X)
+                else:
+                    output_depths, output_segmentations = (None, self.model(X))
+
                 output_depths = output_depths.squeeze(1) if output_depths != None else None
                 Y_depths = Y_depths.squeeze(1)
                 Y_segmentations = Y_segmentations.squeeze(1)

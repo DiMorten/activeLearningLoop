@@ -14,11 +14,12 @@
         "loss_segmentation":"ce",
         "momentum":0.9,
         "epochs":20,
-        "batch_size":1,
+        "batch_size":4,
         "path_model":"models",
         "path_predicted_images":"output",
         "seed":0,
-        "patch_size":16
+        "patch_size":16,
+        "model_type":"deeplab"
     },
     "Dataset":{
         "paths":{
@@ -39,7 +40,7 @@
             "split_test":0.2
         },
         "transforms":{
-            "resize":384,
+            "resize":512,
             "p_flip":0.5,
             "p_crop":0.3,
             "p_rot":0.2

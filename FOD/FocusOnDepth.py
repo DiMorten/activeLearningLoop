@@ -54,7 +54,7 @@ class FocusOnDepth(nn.Module):
         #Transformer
         # encoder_layer = nn.TransformerEncoderLayer(d_model=emb_dim, nhead=nhead, dropout=transformer_dropout, dim_feedforward=emb_dim*4)
         # self.transformer_encoders = nn.TransformerEncoder(encoder_layer, num_layers=num_layers_encoder)
-        self.transformer_encoders = timm.create_model(model_timm, pretrained=True)
+        self.transformer_encoders = timm.create_model(model_timm, img_size = image_size[1], pretrained=True)
         self.type_ = type
 
         #Register hooks
@@ -115,17 +115,3 @@ class FocusOnDepth(nn.Module):
             #self.transformer_encoders.layers[h].register_forward_hook(get_activation('t'+str(h)))
             self.transformer_encoders.blocks[h].register_forward_hook(get_activation('t'+str(h)))
 
-    def get_optimizer(self, config, net):
-        names = set([name.split('.')[0] for name, _ in net.named_modules()]) - set(['', 'transformer_encoders'])
-        params_backbone = net.transformer_encoders.parameters()
-        params_scratch = list()
-        for name in names:
-            params_scratch += list(eval("net."+name).parameters())
-
-        if config['General']['optim'] == 'adam':
-            optimizer_backbone = optim.Adam(params_backbone, lr=config['General']['lr_backbone'])
-            optimizer_scratch = optim.Adam(params_scratch, lr=config['General']['lr_scratch'])
-        elif config['General']['optim'] == 'sgd':
-            optimizer_backbone = optim.SGD(params_backbone, lr=config['General']['lr_backbone'], momentum=config['General']['momentum'])
-            optimizer_scratch = optim.SGD(params_scratch, lr=config['General']['lr_scratch'], momentum=config['General']['momentum'])
-        return optimizer_backbone, optimizer_scratch

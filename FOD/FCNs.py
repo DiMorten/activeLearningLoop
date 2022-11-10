@@ -20,7 +20,23 @@ from FOD.core import (
     Upsample_,
     Squeeze_Excite_Block,
 )
-
+'''
+class DeepLabV3(nn.Module):
+    def __init__(self,
+                    image_size         = (3, 384, 384),
+                    patch_size         = 16,
+                    emb_dim            = 1024,
+                    resample_dim       = 256,
+                    read               = 'projection',
+                    num_layers_encoder = 24,
+                    hooks              = [5, 11, 17, 23],
+                    reassemble_s       = [4, 8, 16, 32],
+                    transformer_dropout= 0,
+                    nclasses           = 2,
+                    type               = "full",
+                    model_timm         = "vit_large_patch16_384", 
+                    channel=3, filters=[32, 64, 128, 256, 512]):    
+'''
 class ResUnetPlusPlus(nn.Module):
     def __init__(self,
                  image_size         = (3, 384, 384),
@@ -112,12 +128,3 @@ class ResUnetPlusPlus(nn.Module):
 
         return None, out
 
-    def get_optimizer(self, config, net):
-
-        if config['General']['optim'] == 'adam':
-        #     optimizer_backbone = optim.Adam(params_backbone, lr=config['General']['lr_backbone'])
-            optimizer_scratch = optim.Adam(net.parameters(), lr=config['General']['lr_scratch'])
-        elif config['General']['optim'] == 'sgd':
-        #     optimizer_backbone = optim.SGD(params_backbone, lr=config['General']['lr_backbone'], momentum=config['General']['momentum'])
-            optimizer_scratch = optim.SGD(net.parameters(), lr=config['General']['lr_scratch'], momentum=config['General']['momentum'])
-        return None, optimizer_scratch

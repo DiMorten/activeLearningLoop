@@ -11,11 +11,14 @@ import pdb
 from scipy.special import softmax
 
 from FOD.FocusOnDepth import FocusOnDepth
-from FOD.ResUnet import ResUnetPlusPlus
+from FOD.FCNs import ResUnetPlusPlus
 
 from FOD.utils import create_dir
 from FOD.dataset import show
 import FOD.uncertainty as uncertainty
+
+import segmentation_models_pytorch as smp
+
 def enable_dropout(model):
     """ Function to enable the dropout layers during test-time """
     for m in model.modules():
@@ -39,17 +42,34 @@ class Predictor(object):
         print("device: %s" % self.device)
         resize = config['Dataset']['transforms']['resize']
         # resize = 513
-        self.model = FocusOnDepth(
-                    image_size  =   (3,resize,resize),
-                    emb_dim     =   config['General']['emb_dim'],
-                    resample_dim=   config['General']['resample_dim'],
-                    read        =   config['General']['read'],
-                    nclasses    =   len(config['Dataset']['classes']) + 1,
-                    hooks       =   config['General']['hooks'],
-                    model_timm  =   config['General']['model_timm'],
-                    type        =   self.type,
-                    patch_size  =   config['General']['patch_size'],
-        )
+        if config['General']['model_type'] == 'FocusOnDepth':
+            self.model = FocusOnDepth(
+                        image_size  =   (3,2688,5376),
+                        emb_dim     =   config['General']['emb_dim'],
+                        resample_dim=   config['General']['resample_dim'],
+                        read        =   config['General']['read'],
+                        nclasses    =   len(config['Dataset']['classes']) + 1,
+                        hooks       =   config['General']['hooks'],
+                        model_timm  =   config['General']['model_timm'],
+                        type        =   self.type,
+                        patch_size  =   config['General']['patch_size'],
+            )
+            path_model = os.path.join(config['General']['path_model'], 'FocusOnDepth_{}.p'.format(config['General']['model_timm']))
+
+        elif config['General']['model_type'] == 'unet':        
+            
+            self.model = smp.Unet('xception', encoder_weights='imagenet', in_channels=3,
+                encoder_depth=4, decoder_channels=[128, 64, 32, 16], classes=2)
+            path_model = os.path.join(config['General']['path_model'], 'Unet.p')
+
+
+        elif config['General']['model_type'] == 'deeplab':        
+            
+            self.model = smp.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
+                classes=2)
+            path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
+
+        '''
         self.model = ResUnetPlusPlus(
                     image_size  =   (3,resize,resize),
                     emb_dim     =   config['General']['emb_dim'],
@@ -61,9 +81,9 @@ class Predictor(object):
                     type        =   self.type,
                     patch_size  =   config['General']['patch_size'],
         )
+        '''
 
-        # path_model = os.path.join(config['General']['path_model'], 'FocusOnDepth_{}.p'.format(config['General']['model_timm']))
-        path_model = os.path.join(config['General']['path_model'], 'ResUnetPlusPlus.p')
+        # path_model = os.path.join(config['General']['path_model'], 'ResUnetPlusPlus.p')
         
         self.model.load_state_dict(
             torch.load(path_model, map_location=self.device)['model_state_dict']
@@ -71,7 +91,8 @@ class Predictor(object):
         self.model.eval()
 
         self.transform_image = transforms.Compose([
-            transforms.Resize((resize, resize)),
+            # transforms.Resize((resize, resize)),
+            # transforms.Resize((528, 528)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
@@ -85,7 +106,11 @@ class Predictor(object):
                 original_size = pil_im.size
 
                 tensor_im = self.transform_image(pil_im).unsqueeze(0)
-                _, output_segmentation = self.model(tensor_im)
+                if isinstance(self.model, FocusOnDepth):
+                    _, output_segmentation = self.model(tensor_im)
+                else:
+                    _, output_segmentation = (None, self.model(tensor_im))
+
                 # output_depth = 1-output_depth
 
                 output_segmentation = transforms.ToPILImage()(output_segmentation.squeeze(0).argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)

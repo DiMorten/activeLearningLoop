@@ -86,8 +86,31 @@ def create_dir(directory):
 #     elif config['General']['optim'] == 'sgd':
 #         optimizer = optim.SGD(net.parameters(), lr=config['General']['lr'], momentum=config['General']['momentum'])
 #     return optimizer
+'''
+def get_optimizer(config, net):
+    names = set([name.split('.')[0] for name, _ in net.named_modules()]) - set(['', 'transformer_encoders'])
+    params_backbone = net.transformer_encoders.parameters()
+    params_scratch = list()
+    for name in names:
+        params_scratch += list(eval("net."+name).parameters())
 
+    if config['General']['optim'] == 'adam':
+        optimizer_backbone = optim.Adam(params_backbone, lr=config['General']['lr_backbone'])
+        optimizer_scratch = optim.Adam(params_scratch, lr=config['General']['lr_scratch'])
+    elif config['General']['optim'] == 'sgd':
+        optimizer_backbone = optim.SGD(params_backbone, lr=config['General']['lr_backbone'], momentum=config['General']['momentum'])
+        optimizer_scratch = optim.SGD(params_scratch, lr=config['General']['lr_scratch'], momentum=config['General']['momentum'])
+    return optimizer_backbone, optimizer_scratch
+'''
+def get_optimizer(config, net):
 
+    if config['General']['optim'] == 'adam':
+    #     optimizer_backbone = optim.Adam(params_backbone, lr=config['General']['lr_backbone'])
+        optimizer_scratch = optim.Adam(net.parameters(), lr=config['General']['lr_scratch'])
+    elif config['General']['optim'] == 'sgd':
+    #     optimizer_backbone = optim.SGD(params_backbone, lr=config['General']['lr_backbone'], momentum=config['General']['momentum'])
+        optimizer_scratch = optim.SGD(net.parameters(), lr=config['General']['lr_scratch'], momentum=config['General']['momentum'])
+    return None, optimizer_scratch
 
 
 def get_schedulers(optimizers):
