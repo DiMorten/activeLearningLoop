@@ -72,9 +72,9 @@ def get_losses(config):
             loss_depth = ScaleAndShiftInvariantLoss()
     if type == "full" or type=="segmentation":
         if config['General']['loss_segmentation'] == 'ce':
-            # weights = [1, 8]
-            # class_weights = torch.FloatTensor(weights).cuda()
-            loss_segmentation = nn.CrossEntropyLoss()
+            weights = [0.6, 3.7]
+            class_weights = torch.FloatTensor(weights).cuda()
+            loss_segmentation = nn.CrossEntropyLoss(weight=class_weights)
     return loss_depth, loss_segmentation
 
 def create_dir(directory):

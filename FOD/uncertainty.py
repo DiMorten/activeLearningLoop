@@ -34,13 +34,14 @@ def predictive_entropy(pred_probs):
 
 def single_experiment_entropy(pred_prob):
     pred_entropy = np.zeros(pred_prob.shape[0:2])
-    ic(pred_entropy.shape)
+    # ic(pred_entropy.shape)
     
     K = pred_prob.shape[-1]
     for k in range(K):
         pred_entropy = pred_entropy + pred_prob[..., k] * np.log(pred_prob[..., k] + epsilon) 
     pred_entropy = - pred_entropy / K
     return pred_entropy
+
 
 def mutual_information(pred_probs):
     H = predictive_entropy(pred_probs)

@@ -13,13 +13,14 @@
         "loss_depth":"ssi",
         "loss_segmentation":"ce",
         "momentum":0.9,
-        "epochs":30,
+        "epochs":40,
         "batch_size":4,
         "path_model":"models",
         "path_predicted_images":"output",
         "seed":0,
         "patch_size":16,
-        "model_type":"deeplab"
+        "model_type":"deeplab",
+        "test_batch_size": 4
     },
     "Dataset":{
         "paths":{
@@ -50,6 +51,9 @@
                 "name": "corrosion",
                 "color": [150,5,61]
             }
+        },
+        "inference":{
+            "save_images": true
         }
     },
     "wandb":{
