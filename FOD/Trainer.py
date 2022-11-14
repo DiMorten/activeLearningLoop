@@ -13,12 +13,34 @@ from numpy.core.numeric import Inf
 from FOD.utils import get_losses, get_optimizer, get_schedulers, create_dir
 from FOD.FocusOnDepth import FocusOnDepth
 from FOD.FCNs import ResUnetPlusPlus
+
+import sys
+sys.path.append('E:/jorg/phd/visionTransformer/activeLearningLoop/segmentation_models_ptorch')
+
 import segmentation_models_pytorch as smp
+import segmentation_models_pytorch_dropout as smpd
 
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
+import torch.nn.functional as F
+import pdb
+
+class EarlyStopping():
+    def __init__(self, patience):
+        self.patience = patience
+        self.restartCounter()
+    def restartCounter(self):
+        self.counter = 0
+    def increaseCounter(self):
+        self.counter += 1
+    def checkStopping(self):
+        if self.counter >= self.patience:
+            return True
+        else:
+            return False
 class Trainer(object):
+        
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -48,7 +70,15 @@ class Trainer(object):
             
             self.model = smp.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
                 classes=2)
-        
+
+        elif config['General']['model_type'] == 'deeplab_dropout':        
+            
+            self.model = smpd.DeepLabV3Plus('resnet34', encoder_weights='imagenet', in_channels=3,
+                classes=2)
+
+            # pdb.set_trace()
+
+                
         '''
         self.model = ResUnetPlusPlus(
                     image_size  =   (3,resize,resize),
@@ -74,9 +104,27 @@ class Trainer(object):
         #     encoder_depth=4, decoder_channels=[128, 64, 32, 16], classes=2)
 
         self.model.to(self.device)
+        '''
+        if config['General']['model_type'] == 'deeplab':   
+            dropout_ = DropoutHook(prob=0.2)
+            # self.model.apply(dropout_.register_hook)
+
+            print(self.model.encoder.model.blocks_1.stack)
+
+            # self.model.encoder.model.blocks_1.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_4.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_7.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_10.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_12.apply(dropout_.register_hook)
+        '''
         # print(self.model)
+
+        # print(self.model.encoder.model.blocks_1.stack)
+
+        # pdb.set_trace()
         # exit(0)
         # print("input shape: ", (3,resize,resize))
+        # print(resize)
         # summary(self.model, (3,resize,resize))
         # exit(0)
 
@@ -95,6 +143,7 @@ class Trainer(object):
                 "batch_size": self.config['General']['batch_size']
             }
         val_loss = Inf
+        es = EarlyStopping(10)
         for epoch in range(epochs):  # loop over the dataset multiple times
             print("Epoch ", epoch+1)
             running_loss = 0.0
@@ -145,10 +194,19 @@ class Trainer(object):
             if new_val_loss < val_loss:
                 self.save_model()
                 val_loss = new_val_loss
+                es.restartCounter()
+            else:
+                es.increaseCounter()
 
             self.schedulers[0].step(new_val_loss)
             if isinstance(self.model, FocusOnDepth):
                 self.schedulers[1].step(new_val_loss)
+
+            if es.checkStopping() == True:
+                print("Early stopping")
+                print(es.counter, es.patience)
+                # print('Finished Training')
+                # exit(0)
 
         print('Finished Training')
 

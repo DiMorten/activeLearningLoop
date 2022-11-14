@@ -20,6 +20,13 @@ from FOD.core import (
     Upsample_,
     Squeeze_Excite_Block,
 )
+
+import sys
+sys.path.append('E:/jorg/phd/visionTransformer/activeLearningLoop/segmentation_models_ptorch')
+
+import segmentation_models_pytorch_dropout as smp
+
+
 '''
 class DeepLabV3(nn.Module):
     def __init__(self,
@@ -127,4 +134,3 @@ class ResUnetPlusPlus(nn.Module):
         out = self.output_layer(x9)
 
         return None, out
-

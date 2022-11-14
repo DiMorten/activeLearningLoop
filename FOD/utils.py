@@ -3,6 +3,8 @@ import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import torch
+
 
 from glob import glob
 from PIL import Image
@@ -70,6 +72,8 @@ def get_losses(config):
             loss_depth = ScaleAndShiftInvariantLoss()
     if type == "full" or type=="segmentation":
         if config['General']['loss_segmentation'] == 'ce':
+            # weights = [1, 8]
+            # class_weights = torch.FloatTensor(weights).cuda()
             loss_segmentation = nn.CrossEntropyLoss()
     return loss_depth, loss_segmentation
 

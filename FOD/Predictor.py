@@ -11,13 +11,20 @@ import pdb
 from scipy.special import softmax
 
 from FOD.FocusOnDepth import FocusOnDepth
-from FOD.FCNs import ResUnetPlusPlus
 
 from FOD.utils import create_dir
 from FOD.dataset import show
 import FOD.uncertainty as uncertainty
 
+import sys, pdb
+sys.path.append('E:/jorg/phd/visionTransformer/activeLearningLoop/segmentation_models_ptorch')
+
 import segmentation_models_pytorch as smp
+import segmentation_models_pytorch_dropout as smpd
+
+import time
+
+from sklearn import metrics
 
 def enable_dropout(model):
     """ Function to enable the dropout layers during test-time """
@@ -33,10 +40,11 @@ def check_dropout_enabled(model):
     return model
 
 class Predictor(object):
-    def __init__(self, config, input_images):
+    def __init__(self, config, input_images, save_images = True):
         self.input_images = input_images
         self.config = config
         self.type = self.config['General']['type']
+        self.save_images = save_images
 
         self.device = torch.device(self.config['General']['device'] if torch.cuda.is_available() else "cpu")
         print("device: %s" % self.device)
@@ -44,7 +52,7 @@ class Predictor(object):
         # resize = 513
         if config['General']['model_type'] == 'FocusOnDepth':
             self.model = FocusOnDepth(
-                        image_size  =   (3,2688,5376),
+                        image_size  =   (3,resize,resize),
                         emb_dim     =   config['General']['emb_dim'],
                         resample_dim=   config['General']['resample_dim'],
                         read        =   config['General']['read'],
@@ -69,6 +77,12 @@ class Predictor(object):
                 classes=2)
             path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
 
+        elif config['General']['model_type'] == 'deeplab_dropout':        
+            
+            self.model = smpd.DeepLabV3Plus('resnet34', encoder_weights='imagenet', in_channels=3,
+                classes=2)
+            path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
+
         '''
         self.model = ResUnetPlusPlus(
                     image_size  =   (3,resize,resize),
@@ -90,12 +104,26 @@ class Predictor(object):
         )
         self.model.eval()
 
+        '''
+        if config['General']['model_type'] == 'deeplab':   
+            dropout_ = DropoutHook(prob=0.2)
+            # self.model.apply(dropout_.register_hook)
+
+            print(self.model.encoder.model.blocks_1.stack)
+
+            # self.model.encoder.model.blocks_1.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_4.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_7.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_10.apply(dropout_.register_hook)
+            self.model.encoder.model.blocks_12.apply(dropout_.register_hook)
+        '''
         self.transform_image = transforms.Compose([
-            # transforms.Resize((resize, resize)),
+            transforms.Resize((resize, resize)),
             # transforms.Resize((528, 528)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
         ])
+        
         self.output_dir = self.config['General']['path_predicted_images']
         create_dir(self.output_dir)
 
@@ -112,14 +140,14 @@ class Predictor(object):
                     _, output_segmentation = (None, self.model(tensor_im))
 
                 # output_depth = 1-output_depth
+                if self.save_images == True:
+                    output_segmentation = transforms.ToPILImage()(output_segmentation.squeeze(0).argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
+                    # output_depth = transforms.ToPILImage()(output_depth.squeeze(0).float()).resize(original_size, resample=Image.BICUBIC)
 
-                output_segmentation = transforms.ToPILImage()(output_segmentation.squeeze(0).argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
-                # output_depth = transforms.ToPILImage()(output_depth.squeeze(0).float()).resize(original_size, resample=Image.BICUBIC)
-
-                path_dir_segmentation = os.path.join(self.output_dir, 'segmentations')
-                path_dir_depths = os.path.join(self.output_dir, 'depths')
-                create_dir(path_dir_segmentation)
-                output_segmentation.save(os.path.join(path_dir_segmentation, os.path.basename(images)))
+                    path_dir_segmentation = os.path.join(self.output_dir, 'segmentations')
+                    path_dir_depths = os.path.join(self.output_dir, 'depths')
+                    create_dir(path_dir_segmentation)
+                    output_segmentation.save(os.path.join(path_dir_segmentation, os.path.basename(images)))
 
                 # path_dir_depths = os.path.join(self.output_dir, 'depths')
                 # create_dir(path_dir_depths)
@@ -171,8 +199,10 @@ class PredictorMCDropout(Predictor):
 
                 for tm in range(self.inference_times):
                     # print('time: ', tm)
-
-                    output_depth, output_segmentation = self.model(tensor_im)
+                    if isinstance(self.model, FocusOnDepth):
+                        _, output_segmentation = self.model(tensor_im)
+                    else:
+                        _, output_segmentation = (None, self.model(tensor_im))
                     # output_depth = 1-output_depth
                     # output_depth  = output_depth.squeeze(0)
                     output_segmentation = output_segmentation.squeeze(0)
@@ -268,7 +298,10 @@ class PredictorSingleEntropy(Predictor):
                 softmax_segmentations = []
 
 
-                output_depth, output_segmentation = self.model(tensor_im)
+                if isinstance(self.model, FocusOnDepth):
+                    _, output_segmentation = self.model(tensor_im)
+                else:
+                    _, output_segmentation = (None, self.model(tensor_im))
 
 
                 # output_depth = 1-output_depth
@@ -309,3 +342,62 @@ class PredictorSingleEntropy(Predictor):
                 plt.savefig(os.path.join(path_dir_uncertainty_pred_entropy, os.path.basename(images)), 
                     dpi=150, bbox_inches='tight', pad_inches=0.0)
 
+
+class PredictorWithMetrics(Predictor):
+
+    def run(self):
+        t0 = time.time()
+        labels = []
+        output_segmentations = []
+        with torch.no_grad():
+
+            for images in self.input_images:
+                pil_im = Image.open(images)
+                original_size = pil_im.size
+
+                tensor_im = self.transform_image(pil_im).unsqueeze(0)
+                if isinstance(self.model, FocusOnDepth):
+                    _, output_segmentation = self.model(tensor_im)
+                else:
+                    _, output_segmentation = (None, self.model(tensor_im))
+                
+                output_segmentation = transforms.ToPILImage()(output_segmentation.squeeze(0).argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
+
+                output_segmentation = np.array(output_segmentation)
+                output_segmentation[output_segmentation>0] = 1
+                # print(output_segmentation.shape)
+                
+                # print(images)
+                label_path = images.split("\\")
+
+                label_path = label_path[0] + '/' + label_path[1] + '/' + 'labels/' + label_path[-1]
+                # print(label_path)
+                label = Image.open(label_path)
+                label = np.array(label)
+                label = label[...,0]
+                label[label>0] = 1
+                # print(label.shape)
+                # print(np.unique(label))
+                # print(label.dtype, output_segmentation.dtype)
+                try:
+                    labels.append(np.expand_dims(label.flatten(), axis=0))
+                    output_segmentations.append(np.expand_dims(output_segmentation.flatten(), axis=0))
+                except:
+                    break
+        labels = np.concatenate(labels, axis=None).flatten().squeeze().astype(np.uint8)
+        output_segmentations = np.concatenate(output_segmentations, axis=None).flatten().squeeze().astype(np.uint8)
+
+
+        print(labels.shape, output_segmentations.shape)
+        print("Time", time.time() - t0)
+
+        miou = metrics.jaccard_score(labels, output_segmentations)
+        print("mIoU:", miou)
+        print(metrics.classification_report(labels, output_segmentations))
+
+        f1 = metrics.f1_score(labels, output_segmentations)
+        print("f1:", f1)
+
+        print("Time", time.time() - t0)
+
+        exit(0)

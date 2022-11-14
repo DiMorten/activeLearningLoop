@@ -13,7 +13,7 @@
         "loss_depth":"ssi",
         "loss_segmentation":"ce",
         "momentum":0.9,
-        "epochs":20,
+        "epochs":30,
         "batch_size":4,
         "path_model":"models",
         "path_predicted_images":"output",
@@ -24,7 +24,7 @@
     "Dataset":{
         "paths":{
             "path_dataset":"C:/Users/jchamorro/Documents/petrobras/Darwin",
-            "list_datasets":["Corrosao_slim"],
+            "list_datasets":["CorrosaoTrainTest"],
             "path_images":"imgs",
             "path_segmentations":"labels",
             "path_depths":"depths"
@@ -35,9 +35,9 @@
             "ext_depths":".png"
         },
         "splits":{
-            "split_train":0.6,
-            "split_val":0.2,
-            "split_test":0.2
+            "split_train":0.4,
+            "split_val":0.1,
+            "split_test":0.5
         },
         "transforms":{
             "resize":512,
