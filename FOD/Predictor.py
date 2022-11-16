@@ -445,12 +445,9 @@ class PredictorSingleEntropyAL(Predictor):
             
             
             softmax_segmentation = output_segmentations.cpu().detach().numpy()
-            # print(softmax_segmentation.shape)
 
             output = softmax_segmentation.argmax(axis=1).astype(np.uint8)
-            ## print("output.shape", output.shape)
-            ## print("Y_segmentations.shape", Y_segmentations.shape)
-            
+
             output_values.append(output)
             reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
 
@@ -478,7 +475,7 @@ class PredictorSingleEntropyAL(Predictor):
         print("f1:", f1)
         oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
         print("oa:", oa)
-        k = 5
+        k = 100
         sorted_values, recommendation_idxs = al.getTopRecommendations(uncertainty_values, k=5, mode='uncertainty')
         print("recommendation IDs", recommendation_idxs)
         print("sorted mean uncertainty", sorted_values)
@@ -505,10 +502,9 @@ class PredictorSingleEntropyAL(Predictor):
         self.output_dir_sorted_by_low = self.output_dir + '_sorted_by_low'
         
         if self.save_images == True:
-
             for k_value in range(k):
                 idx = recommendation_idxs[k_value]
-            
+
                 filename = getSortedFilename(test_data.paths_images[idx])
 
                 saveImages(reference_values[idx], output_values[idx], 
@@ -552,6 +548,14 @@ class PredictorSingleEntropyAL(Predictor):
         axs[1].set_ylabel('Uncertainty')
         axs[1].set_xlabel('Sample ID')
         
+        fig, axs = plt.subplots(2)
+        axs[0].plot(np.array(f1_values)[recommendation_idxs])
+        axs[0].set_ylabel('F1 Score')
+        axs[0].set_xlabel('Sample ID')
+        axs[1].plot(sorted_values)
+        axs[1].set_ylabel('Uncertainty')
+        axs[1].set_xlabel('Sample ID')
+
         plt.figure()
         plt.scatter(sorted_values, np.array(oa_values)[recommendation_idxs])
         plt.xlabel('Uncertainty')

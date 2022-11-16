@@ -11,6 +11,7 @@ with open('config.json', 'r') as f:
 
 list_data = config['Dataset']['paths']['list_datasets']
 
+
 dataset_name = config['Dataset']['paths']['list_datasets'][0]
 print(dataset_name)
 test_data = AutoFocusDataset(config, dataset_name, 'test')

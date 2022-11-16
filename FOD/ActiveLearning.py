@@ -8,3 +8,7 @@ def getTopRecommendations(values, k=5, mode='uncertainty'):
     sorted_idxs = np.argsort(mean_values, axis=0)
     sorted_values = np.sort(mean_values, axis=0)
     return np.flip(sorted_values), np.flip(sorted_idxs)
+def getRepresentativeSamples(values, k=5, mode='max_k_cover'):
+    # values: shape (N, h, w)
+
+    

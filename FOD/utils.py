@@ -15,6 +15,23 @@ from FOD.Custom_augmentation import ToMask
 
 import pdb, sys
 from icecream import ic
+import cv2
+
+def getFilesWithoutBlankReference(dataset_name, files):
+    path = 'C:/Users/jchamorro/Documents/petrobras/Darwin/'
+    files_filtered = []
+    print("len(files)", len(files))
+    for file in files:
+        # print("file", path + dataset_name + '/depths/' + file)
+        # pdb.set_trace()
+        im = cv2.imread(path + dataset_name + '/depths/' + file)
+        if np.any(im != 0):
+            files_filtered.append(file)
+    print("len(files_filtered)", len(files_filtered))
+    # pdb.set_trace()
+    return files_filtered
+
+        
 def get_total_paths(path, ext):
     return glob(os.path.join(path, '*'+ext))
 
@@ -24,8 +41,10 @@ def get_splitted_dataset(config, split, dataset_name, path_images, path_depths, 
     np.random.shuffle(list_files)
     if split == 'train':
         selected_files = list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])]
+        selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     elif split == 'val':
         selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train']):int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val'])]
+        selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     else:
         selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):]
 
@@ -72,9 +91,11 @@ def get_losses(config):
             loss_depth = ScaleAndShiftInvariantLoss()
     if type == "full" or type=="segmentation":
         if config['General']['loss_segmentation'] == 'ce':
-            weights = [0.6, 3.7]
-            class_weights = torch.FloatTensor(weights).cuda()
-            loss_segmentation = nn.CrossEntropyLoss(weight=class_weights)
+            # weights = [0.6, 3.7]
+            # weights = [1, 2]
+            
+            # class_weights = torch.FloatTensor(weights).cuda()
+            loss_segmentation = nn.CrossEntropyLoss()
     return loss_depth, loss_segmentation
 
 def create_dir(directory):

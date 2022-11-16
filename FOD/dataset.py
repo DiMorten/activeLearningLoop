@@ -14,7 +14,7 @@ from torchvision import transforms
 import torchvision.transforms.functional as TF
 
 from FOD.utils import get_total_paths, get_splitted_dataset, get_transforms
-
+import pdb
 from icecream import ic
 def show(imgs):
     fix, axs = plt.subplots(ncols=len(imgs), squeeze=False)
@@ -46,6 +46,8 @@ class AutoFocusDataset(Dataset):
         self.paths_segmentations = get_total_paths(path_segmentations, config['Dataset']['extensions']['ext_segmentations'])
 
         assert (self.split in ['train', 'test', 'val']), "Invalid split!"
+        print(len(self.paths_images), len(self.paths_depths))
+        # pdb.set_trace()
         assert (len(self.paths_images) == len(self.paths_depths)), "Different number of instances between the input and the depth maps"
         assert (len(self.paths_images) == len(self.paths_segmentations)), "Different number of instances between the input and the segmentation maps"
         assert (config['Dataset']['splits']['split_train']+config['Dataset']['splits']['split_test']+config['Dataset']['splits']['split_val'] == 1), "Invalid splits (sum must be equal to 1)"
