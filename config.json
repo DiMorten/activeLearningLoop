@@ -56,6 +56,12 @@
             "save_images": true
         }
     },
+    "Inference": {
+        "get_metrics": true
+    },
+    "ActiveLearning": {
+        "full_train": true
+    },
     "wandb":{
         "enable":false,
         "username":"younesbelkada",

@@ -41,10 +41,10 @@ def get_splitted_dataset(config, split, dataset_name, path_images, path_depths, 
     np.random.shuffle(list_files)
     if split == 'train':
         selected_files = list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])]
-        selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
+        # selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     elif split == 'val':
         selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train']):int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val'])]
-        selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
+        # selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     else:
         selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):]
 
@@ -141,3 +141,9 @@ def get_optimizer(config, net):
 def get_schedulers(optimizers):
     optimizers = [optimizer for optimizer in optimizers if optimizer != None]
     return [ReduceLROnPlateau(optimizer) for optimizer in optimizers]
+
+def filterSamplesByIdxs(dataset, idxs):
+    dataset.paths_images = np.array(dataset.paths_images)[idxs]
+    dataset.paths_depths = np.array(dataset.paths_depths)[idxs]
+    dataset.paths_segmentations = np.array(dataset.paths_segmentations)[idxs]
+    return dataset

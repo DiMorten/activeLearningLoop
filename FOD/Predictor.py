@@ -27,6 +27,8 @@ import time
 from sklearn import metrics
 import FOD.ActiveLearning as al
 from icecream import ic
+import copy
+import FOD.utils as utils
 def enable_dropout(model):
     """ Function to enable the dropout layers during test-time """
     for m in model.modules():
@@ -411,25 +413,18 @@ class PredictorTrain(Predictor):
             y = reference_values.flatten())
         print(class_weights)
 
+
 class PredictorSingleEntropyAL(Predictor):
     def __init__(self, config, input_images):
         super().__init__(config, input_images)
 
         # check_dropout_enabled(self.model)
         # exit(0)
-
-    def run(self):
-        
-        list_data = self.config['Dataset']['paths']['list_datasets']
-
-        autofocus_datasets_test = []
-        test_data = AutoFocusDataset(self.config, list_data[0], 'test')
-        test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
-
-        pbar = tqdm(test_dataloader)
+    def inferDataLoader(self, dataloader, getEncoder = False):
+        pbar = tqdm(dataloader)
         pbar.set_description("Testing")
         self.model.to(self.device)
-        
+
         softmax_segmentations = []
         output_values = []
         uncertainty_values = []
@@ -438,6 +433,7 @@ class PredictorSingleEntropyAL(Predictor):
             # X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
             X, Y_depths = X.to(self.device), Y_depths.to(self.device)            
 
+            # ======= Predict
             if isinstance(self.model, FocusOnDepth):
                 _, output_segmentations = self.model(X)
             else:
@@ -451,8 +447,10 @@ class PredictorSingleEntropyAL(Predictor):
             output_values.append(output)
             reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
 
+            # ========= Apply softmax
             softmax_segmentation = softmax(softmax_segmentation, axis=1)[:, 1]
-            
+
+            # ========= Get uncertainty            
             ## print(softmax_segmentation.shape)
             pred_entropy_batch = []
             for idx in range(len(softmax_segmentation)):
@@ -462,47 +460,77 @@ class PredictorSingleEntropyAL(Predictor):
             pred_entropy_batch = np.concatenate(pred_entropy_batch, axis=0)
             # print("pred_entropy_batch.shape", pred_entropy_batch.shape)
             uncertainty_values.append(pred_entropy_batch)
+            if getEncoder == True:
+                encoder_value = self.model.encoder(X).cpu().detach().numpy()
+                encoder_values.append(encoder_value)
         output_values = np.concatenate(output_values, axis=0)
         uncertainty_values = np.concatenate(uncertainty_values, axis=0)
         reference_values = np.concatenate(reference_values, axis=0)
         
 
-        print(output_values.shape, uncertainty_values.shape, reference_values.shape)
+        print(output_values.shape, uncertainty_values.shape, reference_values.shape) 
+        if getEncoder == True:
+            encoder_values = np.concatenate(encoder_values, axis=0)
+            print("encoder_values.shape", encoder_values.shape)
+            return encoder_values
+        return output_values, reference_values, uncertainty_values  
+
+
+    def run(self):
+        
+        list_data = self.config['Dataset']['paths']['list_datasets']
+        get_metrics = self.config['Inference']['get_metrics']
+
+        test_data = AutoFocusDataset(self.config, list_data[0], 'test')
+        test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
+        output_values, reference_values, uncertainty_values = self.inferDataLoader(test_dataloader)
+        
         # print(np.unique(output_values, return_counts=True))
         # print(np.unique(reference_values, return_counts=True))
+        
+        if get_metrics == True:
+            f1 = metrics.f1_score(reference_values.flatten(), output_values.flatten())
+            print("f1:", f1)
+            oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
+            print("oa:", oa)
+        K = 1000
+        k = 500
+        sorted_values, recommendation_idxs = al.getTopRecommendations(uncertainty_values, K=K, mode='uncertainty')
+        np.save('recommendation_idxs.npy', recommendation_idxs)
+        # print("sorted name IDs", np.array([x.split("\\")[-1] for x in test_data.paths_images])[recommendation_idxs])
 
-        f1 = metrics.f1_score(reference_values.flatten(), output_values.flatten())
-        print("f1:", f1)
-        oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
-        print("oa:", oa)
-        k = 100
-        sorted_values, recommendation_idxs = al.getTopRecommendations(uncertainty_values, k=5, mode='uncertainty')
+        test_data = AutoFocusDataset(self.config, list_data[0], 'test')
+        test_data = utils.filterSamplesByIdxs(test_data, recommendation_idxs)
+        test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
+        # encoder_values = self.inferDataLoader(test_dataloader, getEncoder=True)
+        # pdb.set_trace()
+        # sorted_values, recommendation_idxs = al.getRepresentativeSamples(encoder_values, k=k)
+        
         print("recommendation IDs", recommendation_idxs)
         print("sorted mean uncertainty", sorted_values)
+        if get_metrics == True:
+            # ==== get image accuracy
+            oa_values = []
+            for idx in range(len(reference_values)):
+                oa_values.append(round(metrics.accuracy_score(
+                    reference_values[idx].flatten(), output_values[idx].flatten()), 2))
 
-        # ==== get image accuracy
-        oa_values = []
-        for idx in range(len(reference_values)):
-            oa_values.append(round(metrics.accuracy_score(
-                reference_values[idx].flatten(), output_values[idx].flatten()), 2))
+            print("sorted OA", np.array(oa_values)[recommendation_idxs])
 
-        print("sorted OA", np.array(oa_values)[recommendation_idxs])
+            f1_values = []
+            for idx in range(len(reference_values)):
+                f1_values.append(round(metrics.f1_score(
+                    reference_values[idx].flatten(), output_values[idx].flatten(), zero_division = 1), 2))
 
-        f1_values = []
-        for idx in range(len(reference_values)):
-            f1_values.append(round(metrics.f1_score(
-                reference_values[idx].flatten(), output_values[idx].flatten(), zero_division = 1), 2))
-
-        print("sorted F1 score", np.array(f1_values)[recommendation_idxs])
+            print("sorted F1 score", np.array(f1_values)[recommendation_idxs])
 
         #pdb.set_trace()        
-        print("sorted name IDs", np.array([x.split("\\")[-1] for x in test_data.paths_images])[recommendation_idxs])
 
         self.output_dir_sorted = self.output_dir + '_sorted'
         self.output_dir_sorted_by_low = self.output_dir + '_sorted_by_low'
         
         if self.save_images == True:
-            for k_value in range(k):
+            for k_value in range(20):
                 idx = recommendation_idxs[k_value]
 
                 filename = getSortedFilename(test_data.paths_images[idx])
@@ -513,33 +541,7 @@ class PredictorSingleEntropyAL(Predictor):
 
 
 
-            idx = recommendation_idxs[-4]
-            filename = getSortedFilename(test_data.paths_images[idx])
 
-            saveImages(reference_values[idx], output_values[idx], 
-                uncertainty_values[idx], filename= filename,
-                output_dir = self.output_dir_sorted_by_low)
-
-            idx = recommendation_idxs[-3]
-            filename = getSortedFilename(test_data.paths_images[idx])
-
-            saveImages(reference_values[idx], output_values[idx], 
-                uncertainty_values[idx], filename= filename,
-                output_dir = self.output_dir_sorted_by_low)
-
-            idx = recommendation_idxs[-2]
-            filename = getSortedFilename(test_data.paths_images[idx])
-
-            saveImages(reference_values[idx], output_values[idx], 
-                uncertainty_values[idx], filename= filename,
-                output_dir = self.output_dir_sorted_by_low)
-
-            idx = recommendation_idxs[-1]
-            filename = getSortedFilename(test_data.paths_images[idx])
-
-            saveImages(reference_values[idx], output_values[idx], 
-                uncertainty_values[idx], filename= filename,
-                output_dir = self.output_dir_sorted_by_low)
         fig, axs = plt.subplots(2)
         axs[0].plot(np.array(oa_values)[recommendation_idxs])
         axs[0].set_ylabel('Overall Accuracy')

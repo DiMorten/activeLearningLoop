@@ -20,5 +20,5 @@ else:
     dataset_config = config
 
 input_images = glob('input/*.jpg') + glob('input/*.png')
-predictor = PredictorSingleEntropyAL(dataset_config, input_images)
+predictor = PredictorSingleEntropy(dataset_config, input_images)
 predictor.run()
