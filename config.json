@@ -51,16 +51,16 @@
                 "name": "corrosion",
                 "color": [150,5,61]
             }
-        },
-        "inference":{
-            "save_images": true
         }
     },
     "Inference": {
-        "get_metrics": true
+        "get_metrics": true,
+        "save_images": false
     },
     "ActiveLearning": {
-        "full_train": true
+        "full_train": true,
+        "method": "uncertainty",
+        "diversity_method": "cluster"
     },
     "wandb":{
         "enable":false,

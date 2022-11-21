@@ -50,6 +50,7 @@ for dataset_name in list_data:
     if dataset_name == "CorrosaoActiveLearning":
         recommendation_idxs = np.load('recommendation_idxs.npy')
         dataset = utils.filterSamplesByIdxs(dataset, recommendation_idxs)
+        # dataset = utils.filterSamplesByRandomIdxs(dataset, 500)
 
     autofocus_datasets_train.append(dataset)
 train_data = ConcatDataset(autofocus_datasets_train)
