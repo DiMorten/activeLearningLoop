@@ -40,13 +40,13 @@ def get_splitted_dataset(config, split, dataset_name, path_images, path_depths, 
     np.random.seed(config['General']['seed'])
     np.random.shuffle(list_files)
     if split == 'train':
-        selected_files = list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])]
+        selected_files = list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])]# [:100]
         # selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     elif split == 'val':
         selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train']):int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val'])]
         # selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     else:
-        selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):]
+        selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):]# [:100]
 
     ic(os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_images']))
     print('Train list', list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])])

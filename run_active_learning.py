@@ -14,7 +14,7 @@ config_active_learning['Dataset']['splits']['split_test'] = 1.
 dataset_name = config['Dataset']['paths']['list_datasets'][0]
 print(dataset_name)
 
-if dataset_name == "CorrosaoActiveLearning":
+if dataset_name == "CorrosaoActiveLearning" or dataset_name == "CorrosaoActiveLearningReduced":
     dataset_config = config_active_learning
 else:
     dataset_config = config

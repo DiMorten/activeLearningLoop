@@ -20,12 +20,13 @@
         "seed":0,
         "patch_size":16,
         "model_type":"deeplab",
-        "test_batch_size": 4
+        "test_batch_size": 4,
+        "exp_id": 0
     },
     "Dataset":{
         "paths":{
             "path_dataset":"C:/Users/jchamorro/Documents/petrobras/Darwin",
-            "list_datasets":["CorrosaoTrainTest"],
+            "list_datasets":["CorrosaoTrainTestReduced"],
             "path_images":"imgs",
             "path_segmentations":"labels",
             "path_depths":"depths"
@@ -58,9 +59,11 @@
         "save_images": false
     },
     "ActiveLearning": {
-        "full_train": true,
+        "dataset": "CorrosaoActiveLearningReduced",
+        "full_train": false,
         "method": "uncertainty",
-        "diversity_method": "cluster"
+        "diversity_method": false,
+        "spatial_buffer": false
     },
     "wandb":{
         "enable":false,

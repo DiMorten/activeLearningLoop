@@ -65,29 +65,32 @@ class Predictor(object):
                         type        =   self.type,
                         patch_size  =   config['General']['patch_size'],
             )
-            path_model = os.path.join(config['General']['path_model'], 'FocusOnDepth_{}.p'.format(config['General']['model_timm']))
+            # path_model = os.path.join(config['General']['path_model'], 'FocusOnDepth_{}.p'.format(config['General']['model_timm']))
 
         elif config['General']['model_type'] == 'unet':        
             
             self.model = smp.Unet('xception', encoder_weights='imagenet', in_channels=3,
                 encoder_depth=4, decoder_channels=[128, 64, 32, 16], classes=2)
-            path_model = os.path.join(config['General']['path_model'], 'Unet.p')
+            # path_model = os.path.join(config['General']['path_model'], 'Unet.p')
 
 
         elif config['General']['model_type'] == 'deeplab':        
             
-            self.model = smpd.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
-                classes=2)
             # self.model = smpd.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
-            #     classes=2)                
-            path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
+            #     classes=2)
+            self.model = smp.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
+                classes=2)                
+            # path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
 
         elif config['General']['model_type'] == 'deeplab_dropout':        
             
             self.model = smpd.DeepLabV3Plus('resnet34', encoder_weights='imagenet', in_channels=3,
                 classes=2)
-            path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
+            # path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
 
+        
+        path_model = os.path.join(self.config['General']['path_model'], self.model.__class__.__name__ + 
+            '_' + str(self.config['General']['exp_id']) + '.p')
         '''
         self.model = ResUnetPlusPlus(
                     image_size  =   (3,resize,resize),
@@ -182,6 +185,87 @@ class Predictor(object):
                 # final_image = cv2.addWeighted(region_not_to_blur.astype(np.uint8), 0.5, blurred.astype(np.uint8), 0.5, 0)
                 # final_image = Image.fromarray((final_image).astype(np.uint8))
                 # final_image.save(os.path.join(self.output_dir, os.path.basename(images)))
+
+    def inferDataLoader(self, dataloader, getEncoder = False):
+        pbar = tqdm(dataloader)
+        pbar.set_description("Testing")
+        self.model.to(self.device)
+
+        softmax_segmentations = []
+        output_values = []
+        uncertainty_values = []
+        reference_values = []
+        encoder_values = []
+
+        if self.config['ActiveLearning']['spatial_buffer'] == True:
+            self.buffer_mask_values = []
+        for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
+            # X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
+            X, Y_depths = X.to(self.device), Y_depths.to(self.device)            
+
+            # ======= Predict
+            if isinstance(self.model, FocusOnDepth):
+                _, output_segmentations = self.model(X)
+            else:
+                if getEncoder == True:
+                    # print(len(self.model(X)))
+                    # pdb.set_trace()
+                    encoder_features, output_segmentations = self.model(X)
+                    encoder_features = encoder_features.mean((2, 3))
+                else:
+                    _, output_segmentations = (None, self.model(X))
+
+            
+            softmax_segmentation = output_segmentations.cpu().detach().numpy()
+
+            output = softmax_segmentation.argmax(axis=1).astype(np.uint8)
+
+            output_values.append(output)
+            reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
+
+            # ========= Apply softmax
+            softmax_segmentation = softmax(softmax_segmentation, axis=1)[:, 1]
+
+            # ========= Get uncertainty            
+            ## print(softmax_segmentation.shape)
+            pred_entropy_batch = []
+            if self.config['ActiveLearning']['spatial_buffer'] == True:
+                buffer_mask_batch = []
+            for idx in range(len(softmax_segmentation)):
+                pred_entropy = uncertainty.single_experiment_entropy(
+                        np.expand_dims(softmax_segmentation[idx], axis=-1)).astype(np.float32)
+                
+                
+                if self.config['ActiveLearning']['spatial_buffer'] == True:
+                    pred_entropy, buffer_mask = uncertainty.apply_spatial_buffer(
+                        pred_entropy, softmax_segmentation[idx]
+                    )
+                    buffer_mask_batch.append(np.expand_dims(buffer_mask, axis=0))
+                
+                pred_entropy_batch.append(np.expand_dims(pred_entropy, axis=0))
+            pred_entropy_batch = np.concatenate(pred_entropy_batch, axis=0)
+            # print("pred_entropy_batch.shape", pred_entropy_batch.shape)
+            uncertainty_values.append(pred_entropy_batch)
+            if self.config['ActiveLearning']['spatial_buffer'] == True:
+                buffer_mask_batch = np.concatenate(buffer_mask_batch, axis=0)
+                self.buffer_mask_values.append(buffer_mask_batch)
+
+            if getEncoder == True:
+                encoder_value = encoder_features.cpu().detach().numpy()
+                encoder_values.append(encoder_value)
+        output_values = np.concatenate(output_values, axis=0)
+        uncertainty_values = np.concatenate(uncertainty_values, axis=0)
+        reference_values = np.concatenate(reference_values, axis=0)
+        if self.config['ActiveLearning']['spatial_buffer'] == True:
+            self.buffer_mask_values = np.concatenate(self.buffer_mask_values, axis=0)
+            print("self.buffer_mask_values.shape", self.buffer_mask_values.shape)
+
+        print(output_values.shape, uncertainty_values.shape, reference_values.shape) 
+        if getEncoder == True:
+            encoder_values = np.concatenate(encoder_values, axis=0)
+            print("encoder_values.shape", encoder_values.shape)
+            return output_values, reference_values, uncertainty_values, encoder_values
+        return output_values, reference_values, uncertainty_values  
 
 class PredictorMCDropout(Predictor):
     def __init__(self, config, input_images):
@@ -316,6 +400,10 @@ class PredictorSingleEntropy(Predictor):
                 
                 pred_entropy = uncertainty.single_experiment_entropy(
                     np.expand_dims(softmax_segmentation, axis=-1)).astype(np.float32)
+                
+                # pred_entropy = uncertainty.apply_spatial_buffer(
+                #     pred_entropy, softmax_segmentation
+                # )
                 ic(pred_entropy.shape)
 
                 output_segmentation = transforms.ToPILImage()(output_segmentation.argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
@@ -422,75 +510,22 @@ class PredictorSingleEntropyAL(Predictor):
 
         # check_dropout_enabled(self.model)
         # exit(0)
-    def inferDataLoader(self, dataloader, getEncoder = False):
-        pbar = tqdm(dataloader)
-        pbar.set_description("Testing")
-        self.model.to(self.device)
-
-        softmax_segmentations = []
-        output_values = []
-        uncertainty_values = []
-        reference_values = []
-        encoder_values = []
-        for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
-            # X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
-            X, Y_depths = X.to(self.device), Y_depths.to(self.device)            
-
-            # ======= Predict
-            if isinstance(self.model, FocusOnDepth):
-                _, output_segmentations = self.model(X)
-            else:
-                if getEncoder == True:
-                    # print(len(self.model(X)))
-                    # pdb.set_trace()
-                    encoder_features, output_segmentations = self.model(X)
-                    encoder_features = encoder_features.mean((2, 3))
-                else:
-                    _, output_segmentations = (None, self.model(X))
-
-            
-            softmax_segmentation = output_segmentations.cpu().detach().numpy()
-
-            output = softmax_segmentation.argmax(axis=1).astype(np.uint8)
-
-            output_values.append(output)
-            reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
-
-            # ========= Apply softmax
-            softmax_segmentation = softmax(softmax_segmentation, axis=1)[:, 1]
-
-            # ========= Get uncertainty            
-            ## print(softmax_segmentation.shape)
-            pred_entropy_batch = []
-            for idx in range(len(softmax_segmentation)):
-                pred_entropy = uncertainty.single_experiment_entropy(
-                        np.expand_dims(softmax_segmentation[idx], axis=-1)).astype(np.float32)
-                pred_entropy_batch.append(np.expand_dims(pred_entropy, axis=0))
-            pred_entropy_batch = np.concatenate(pred_entropy_batch, axis=0)
-            # print("pred_entropy_batch.shape", pred_entropy_batch.shape)
-            uncertainty_values.append(pred_entropy_batch)
-            if getEncoder == True:
-                encoder_value = encoder_features.cpu().detach().numpy()
-                encoder_values.append(encoder_value)
-        output_values = np.concatenate(output_values, axis=0)
-        uncertainty_values = np.concatenate(uncertainty_values, axis=0)
-        reference_values = np.concatenate(reference_values, axis=0)
-        
-
-        print(output_values.shape, uncertainty_values.shape, reference_values.shape) 
-        if getEncoder == True:
-            encoder_values = np.concatenate(encoder_values, axis=0)
-            print("encoder_values.shape", encoder_values.shape)
-            return output_values, reference_values, uncertainty_values, encoder_values
-        return output_values, reference_values, uncertainty_values  
-
 
     def run(self):
-        
+        t0 = time.time()
+
         list_data = self.config['Dataset']['paths']['list_datasets']
         get_metrics = self.config['Inference']['get_metrics']
 
-        test_data = AutoFocusDataset(self.config, list_data[0], 'test')
+        config_active_learning = copy.deepcopy(self.config)
+        config_active_learning['Dataset']['splits']['split_train'] = 0.
+        config_active_learning['Dataset']['splits']['split_val'] = 0.
+        config_active_learning['Dataset']['splits']['split_test'] = 1.
+
+        test_data = AutoFocusDataset(config_active_learning, 
+            self.config['ActiveLearning']['dataset'], 'test')
+        print(len(test_data.paths_images))
+        # pdb.set_trace()
         test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
         if self.config['ActiveLearning']['diversity_method'] != False:
             output_values, reference_values, uncertainty_values, encoder_values = self.inferDataLoader(
@@ -508,15 +543,21 @@ class PredictorSingleEntropyAL(Predictor):
             oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
             print("oa:", oa)
         
-        k = 500
+        # k = 500
+        k = 250
         if self.config['ActiveLearning']['diversity_method'] == False:        
-            K = 500
+            K = k
         else:
-            K = 1000
+            K = 500
 
         # K = 20
         # k = 10
-        sorted_values, recommendation_idxs = al.getTopRecommendations(uncertainty_values, K=K, mode='uncertainty')
+        if self.config['ActiveLearning']['spatial_buffer'] == False:
+            sorted_values, recommendation_idxs = al.getTopRecommendations(uncertainty_values, K=K, mode='uncertainty')
+        else:
+            sorted_values, recommendation_idxs = al.getTopRecommendationsBuffer(
+                uncertainty_values, self.buffer_mask_values, K=K, mode='uncertainty')
+
         print("sorted_values.shape", sorted_values.shape)
         
         # print("sorted name IDs", np.array([x.split("\\")[-1] for x in test_data.paths_images])[recommendation_idxs])
@@ -526,13 +567,27 @@ class PredictorSingleEntropyAL(Predictor):
         # test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
         # encoder_values = self.inferDataLoader(test_dataloader, getEncoder=True)
         # pdb.set_trace()
-        if self.config['ActiveLearning']['diversity_method'] != False:   
+        print("sorted mean uncertainty", sorted_values)
+        if self.config['ActiveLearning']['diversity_method'] == 'cluster':   
             representative_idxs, recommendation_idxs = al.getRepresentativeSamples(encoder_values[recommendation_idxs], recommendation_idxs, k=k)
             sorted_values = sorted_values[representative_idxs]
+        elif self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
+            train_data = AutoFocusDataset(self.config, 'CorrosaoTrainTest', 'train')
+            train_dataloader = DataLoader(train_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
+
+            _, _, _, train_encoder_values = self.inferDataLoader(
+                train_dataloader, getEncoder=True)
+
+            representative_idxs, recommendation_idxs = al.getRepresentativeSamples(encoder_values[recommendation_idxs], recommendation_idxs, 
+                train_values = train_encoder_values, k=k)
+            sorted_values = sorted_values[representative_idxs]
         
-        np.save('recommendation_idxs.npy', recommendation_idxs)
-        
+
+        np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
+            recommendation_idxs)
+
         print("recommendation IDs", recommendation_idxs)
+        
         print("sorted mean uncertainty", sorted_values)
         if True:
             # ==== get image accuracy
@@ -566,7 +621,7 @@ class PredictorSingleEntropyAL(Predictor):
                     output_dir = self.output_dir_sorted)
 
 
-
+        print("time", time.time() - t0)
 
         fig, axs = plt.subplots(2)
         axs[0].plot(np.array(oa_values)[recommendation_idxs])
@@ -595,8 +650,41 @@ class PredictorSingleEntropyAL(Predictor):
         
         plt.show()
         pdb.set_trace()
-'''
+
 class PredictorWithMetrics(Predictor):
+    def __init__(self, config, input_images):
+        super().__init__(config, input_images)
+
+        # check_dropout_enabled(self.model)
+        # exit(0)
+
+
+    def run(self):
+        
+        list_data = self.config['Dataset']['paths']['list_datasets']
+
+        test_data = AutoFocusDataset(self.config, list_data[0], 'test')
+        print(len(test_data.paths_images))
+        # pdb.set_trace()
+        test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
+
+        if self.config['ActiveLearning']['diversity_method'] != False:
+            output_values, reference_values, uncertainty_values, encoder_values = self.inferDataLoader(
+                test_dataloader, getEncoder=True)
+        else:
+            output_values, reference_values, uncertainty_values = self.inferDataLoader(
+                test_dataloader)
+        
+        # print(np.unique(output_values, return_counts=True))
+        # print(np.unique(reference_values, return_counts=True))
+        
+
+        f1 = metrics.f1_score(reference_values.flatten(), output_values.flatten())
+        print("f1:", f1)
+        oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
+        print("oa:", oa)
+
+'''
 
     def run(self):
         t0 = time.time()

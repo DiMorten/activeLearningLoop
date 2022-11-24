@@ -132,6 +132,11 @@ class Trainer(object):
         self.optimizer_backbone, self.optimizer_scratch = get_optimizer(config, self.model)
         self.schedulers = get_schedulers([self.optimizer_backbone, self.optimizer_scratch])
 
+        self.path_model = os.path.join(self.config['General']['path_model'], 
+            self.model.__class__.__name__ + 
+            '_' + str(self.config['General']['exp_id']))
+
+            
     def train(self, train_dataloader, val_dataloader):
         epochs = self.config['General']['epochs']
         if self.config['wandb']['enable']:
@@ -205,8 +210,8 @@ class Trainer(object):
             if es.checkStopping() == True:
                 print("Early stopping")
                 print(es.counter, es.patience)
-                # print('Finished Training')
-                # exit(0)
+                print('Finished Training')
+                exit(0)
 
         print('Finished Training')
 
@@ -252,13 +257,13 @@ class Trainer(object):
         return val_loss/(i+1)
 
     def save_model(self):
-        path_model = os.path.join(self.config['General']['path_model'], self.model.__class__.__name__)
-        create_dir(path_model)
+        
+        create_dir(self.path_model)
         torch.save({'model_state_dict': self.model.state_dict(),
                     # 'optimizer_backbone_state_dict': self.optimizer_backbone.state_dict(),
                     'optimizer_scratch_state_dict': self.optimizer_scratch.state_dict()
-                    }, path_model+'.p')
-        print('Model saved at : {}'.format(path_model))
+                    }, self.path_model+'.p')
+        print('Model saved at : {}'.format(self.path_model))
 
     def img_logger(self, X, Y_depths, Y_segmentations, output_depths, output_segmentations):
         nb_to_show = self.config['wandb']['images_to_show'] if self.config['wandb']['images_to_show'] <= len(X) else len(X)

@@ -42,6 +42,45 @@ def single_experiment_entropy(pred_prob):
     pred_entropy = - pred_entropy / K
     return pred_entropy
 
+def apply_spatial_buffer(uncertainty, threshold = 0.2):
+    uncertainty_thresholded = uncertainty.copy()
+    uncertainty_thresholded[uncertainty_thresholded >= threshold] = 1
+    uncertainty_thresholded[uncertainty_thresholded < threshold] = 0
+    uncertainty_thresholded = uncertainty_thresholded.astype(np.uint8)
+
+    return uncertainty_thresholded    
+
+import skimage
+from skimage.morphology import disk
+import matplotlib.pyplot as plt
+
+def get_border_from_binary_mask(mask, buffer = 3):
+    mask_ = mask.copy()
+    im_dilate = skimage.morphology.dilation(mask_, disk(buffer))
+    im_erosion = skimage.morphology.erosion(mask_, disk(buffer))
+    inner_buffer = mask_ - im_erosion
+    inner_buffer[inner_buffer == 1] = 2
+    outer_buffer = im_dilate-mask_
+    outer_buffer[outer_buffer == 1] = 2
+
+    mask_[outer_buffer + inner_buffer == 2 ] = 2
+
+    mask_[mask_ != 2] = 0
+    mask_[mask_ == 2] = 1
+
+    return mask_
+def apply_spatial_buffer(uncertainty, softmax_segmentation):
+    softmax_segmentation[softmax_segmentation >= 0.5] = 1
+    softmax_segmentation[softmax_segmentation < 0.5] = 0
+
+    border_mask = get_border_from_binary_mask(softmax_segmentation)
+    # plt.imshow(border_mask)
+    # plt.show()
+
+    uncertainty[border_mask == 1] = 0
+    
+    return uncertainty, border_mask.astype(np.bool)
+
 
 def mutual_information(pred_probs):
     H = predictive_entropy(pred_probs)
