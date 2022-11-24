@@ -544,12 +544,14 @@ class PredictorSingleEntropyAL(Predictor):
             print("oa:", oa)
         
         # k = 500
-        k = 250
+        # k = 250
+        k = self.config['ActiveLearning']['k']
         if self.config['ActiveLearning']['diversity_method'] == False:        
             K = k
         else:
-            K = 500
+            K = k * self.config['ActiveLearning']['beta']
 
+        ic(k, K)
         # K = 20
         # k = 10
         if self.config['ActiveLearning']['spatial_buffer'] == False:

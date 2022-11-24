@@ -63,7 +63,9 @@
         "full_train": false,
         "method": "uncertainty",
         "diversity_method": false,
-        "spatial_buffer": false
+        "spatial_buffer": false,
+        "k": 250,
+        "beta": 2
     },
     "wandb":{
         "enable":false,

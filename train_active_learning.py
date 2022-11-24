@@ -29,14 +29,21 @@ recommendation_idxs_path = 'recommendation_idxs_' + str(config['General']['exp_i
 
 config_active_learning = copy.deepcopy(config)
 
+print(recommendation_idxs_path)
+recommendation_idxs = np.load(recommendation_idxs_path)
+len_idxs = len(recommendation_idxs)
+ic(len_idxs, int(len_idxs*config_active_learning['Dataset']['splits']['split_train']))
+
+config_active_learning['Dataset']['splits']['split_train'] = 1.
+config_active_learning['Dataset']['splits']['split_val'] = 0.
+config_active_learning['Dataset']['splits']['split_test'] = 0.
+
 if config_active_learning['ActiveLearning']['full_train'] == False:
-    config_active_learning['Dataset']['splits']['split_train'] = 0.8
-    config_active_learning['Dataset']['splits']['split_val'] = 0.2
-    config_active_learning['Dataset']['splits']['split_test'] = 0.
+
+    recommendation_idxs_train = recommendation_idxs[:int(len_idxs*0.8)]
+    recommendation_idxs_validation = recommendation_idxs[int(len_idxs*0.8):]
 else:
-    config_active_learning['Dataset']['splits']['split_train'] = 1.
-    config_active_learning['Dataset']['splits']['split_val'] = 0.
-    config_active_learning['Dataset']['splits']['split_test'] = 0.
+    recommendation_idxs_train = recommendation_idxs.copy()
 
 print(config['Dataset']['splits'])
 
@@ -53,9 +60,8 @@ for dataset_name in list_data:
     dataset = AutoFocusDataset(dataset_config, dataset_name, 'train')
     # pdb.set_trace()
     if dataset_name == "CorrosaoActiveLearning" or dataset_name == "CorrosaoActiveLearningReduced":
-        print(recommendation_idxs_path)
-        recommendation_idxs = np.load(recommendation_idxs_path)
-        dataset = utils.filterSamplesByIdxs(dataset, recommendation_idxs)
+
+        dataset = utils.filterSamplesByIdxs(dataset, recommendation_idxs_train)
         # dataset = utils.filterSamplesByRandomIdxs(dataset, 500)
 
     autofocus_datasets_train.append(dataset)
@@ -68,9 +74,12 @@ autofocus_datasets_val = []
 for dataset_name in list_data:
     if dataset_name == "CorrosaoActiveLearning" or dataset_name == "CorrosaoActiveLearningReduced":
         dataset_config = config_active_learning
+        dataset = AutoFocusDataset(dataset_config, dataset_name, 'train')
+        dataset = utils.filterSamplesByIdxs(dataset, recommendation_idxs_validation)
     else:
         dataset_config = config       
-    autofocus_datasets_val.append(AutoFocusDataset(dataset_config, dataset_name, 'val'))
+        dataset = AutoFocusDataset(dataset_config, dataset_name, 'val')
+    autofocus_datasets_val.append(dataset)
 val_data = ConcatDataset(autofocus_datasets_val)
 val_dataloader = DataLoader(val_data, batch_size=config['General']['batch_size'], shuffle=True)
 
