@@ -55,17 +55,19 @@
         }
     },
     "Inference": {
-        "get_metrics": true,
+        "get_metrics": false,
         "save_images": false
     },
     "ActiveLearning": {
         "dataset": "CorrosaoActiveLearningReduced",
         "full_train": false,
         "method": "uncertainty",
-        "diversity_method": false,
+        "diversity_method": "cluster",
+        "pca": true,
         "spatial_buffer": false,
-        "k": 250,
-        "beta": 2
+        "k": 100,
+        "beta": 5,
+        "random_percentage": 0.5
     },
     "wandb":{
         "enable":false,

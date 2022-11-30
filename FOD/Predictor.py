@@ -75,11 +75,13 @@ class Predictor(object):
 
 
         elif config['General']['model_type'] == 'deeplab':        
+            if config['ActiveLearning']['diversity_method'] != False:
+                network = smpd.DeepLabV3Plus
+            else:
+                network = smp.DeepLabV3Plus   
             
-            # self.model = smpd.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
-            #     classes=2)
-            self.model = smp.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', in_channels=3,
-                classes=2)                
+            self.model = network('tu-xception41', encoder_weights='imagenet', in_channels=3,
+                    classes=2)                
             # path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
 
         elif config['General']['model_type'] == 'deeplab_dropout':        
@@ -91,6 +93,7 @@ class Predictor(object):
         
         path_model = os.path.join(self.config['General']['path_model'], self.model.__class__.__name__ + 
             '_' + str(self.config['General']['exp_id']) + '.p')
+        ic(path_model)
         '''
         self.model = ResUnetPlusPlus(
                     image_size  =   (3,resize,resize),
@@ -514,7 +517,6 @@ class PredictorSingleEntropyAL(Predictor):
     def run(self):
         t0 = time.time()
 
-        list_data = self.config['Dataset']['paths']['list_datasets']
         get_metrics = self.config['Inference']['get_metrics']
 
         config_active_learning = copy.deepcopy(self.config)
@@ -525,6 +527,22 @@ class PredictorSingleEntropyAL(Predictor):
         test_data = AutoFocusDataset(config_active_learning, 
             self.config['ActiveLearning']['dataset'], 'test')
         print(len(test_data.paths_images))
+
+        if self.config['ActiveLearning']['method'] == 'random':
+            recommendation_idxs = al.getRandomIdxs(test_data, 
+                self.config['ActiveLearning']['k'])
+            ic(self.config['ActiveLearning']['method'], len(recommendation_idxs))
+            np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
+                recommendation_idxs)
+            sys.exit(0)
+        if self.config['ActiveLearning']['random_percentage'] > 0:
+            sample_n_with_random_percentage = int(
+                self.config['ActiveLearning']['k'] * self.config['ActiveLearning']['random_percentage'])
+
+            ic(sample_n_with_random_percentage)
+            recommendation_idxs_with_random_percentage = al.getRandomIdxs(test_data, 
+                sample_n_with_random_percentage)
+
         # pdb.set_trace()
         test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
         if self.config['ActiveLearning']['diversity_method'] != False:
@@ -571,7 +589,7 @@ class PredictorSingleEntropyAL(Predictor):
         # pdb.set_trace()
         print("sorted mean uncertainty", sorted_values)
         if self.config['ActiveLearning']['diversity_method'] == 'cluster':   
-            representative_idxs, recommendation_idxs = al.getRepresentativeSamples(encoder_values[recommendation_idxs], recommendation_idxs, k=k)
+            representative_idxs, recommendation_idxs = al.getRepresentativeSamplesFromCluster(encoder_values[recommendation_idxs], recommendation_idxs, k=k)
             sorted_values = sorted_values[representative_idxs]
         elif self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
             train_data = AutoFocusDataset(self.config, 'CorrosaoTrainTest', 'train')
@@ -580,10 +598,12 @@ class PredictorSingleEntropyAL(Predictor):
             _, _, _, train_encoder_values = self.inferDataLoader(
                 train_dataloader, getEncoder=True)
 
-            representative_idxs, recommendation_idxs = al.getRepresentativeSamples(encoder_values[recommendation_idxs], recommendation_idxs, 
+            representative_idxs, recommendation_idxs = al.getRepresentativeSamplesFromDistance(encoder_values[recommendation_idxs], recommendation_idxs, 
                 train_values = train_encoder_values, k=k)
             sorted_values = sorted_values[representative_idxs]
         
+        if self.config['ActiveLearning']['random_percentage'] > 0:
+            recommendation_idxs[-sample_n_with_random_percentage:] = recommendation_idxs_with_random_percentage
 
         np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
             recommendation_idxs)

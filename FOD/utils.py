@@ -149,11 +149,3 @@ def filterSamplesByIdxs(dataset, idxs):
     dataset.paths_segmentations = np.array(dataset.paths_segmentations)[idxs]
     return dataset
 
-def filterSamplesByRandomIdxs(dataset, n):
-    idxs = np.arange(len(dataset.paths_images))
-    np.random.shuffle(idxs)
-    idxs = idxs[:n]
-    dataset.paths_images = np.array(dataset.paths_images)[idxs]
-    dataset.paths_depths = np.array(dataset.paths_depths)[idxs]
-    dataset.paths_segmentations = np.array(dataset.paths_segmentations)[idxs]
-    return dataset

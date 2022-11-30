@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 import pdb
 from scipy.spatial import distance
 from icecream import ic
@@ -34,11 +35,17 @@ def getTopRecommendationsBuffer(values, buffer_mask_values, K=500, mode='uncerta
     return np.flip(sorted_values)[:K], recommendation_idxs
 
 
-def getRepresentativeSamples(values, recommendation_idxs, k=250, mode='cluster'):
+def getRepresentativeSamplesFromCluster(values, recommendation_idxs, k=250, mode='cluster'):
 
     '''
     values: shape (n_samples, feature_len)
     '''
+
+    pca = PCA(n_components = 100)
+    pca.fit(values)
+    values = pca.transform(values)
+    # print(pca.explained_variance_ratio_)
+    # pdb.set_trace()
 
     cluster = KMeans(n_clusters = k)
     print("Fitting cluster...")
@@ -57,9 +64,9 @@ def getRepresentativeSamples(values, recommendation_idxs, k=250, mode='cluster')
     representative_idxs = np.array(representative_idxs)
     representative_idxs = np.sort(representative_idxs, axis=0)
     print(representative_idxs)
-    pdb.set_trace()
+    # pdb.set_trace()
 
-    print("getRepresentativeSamples")
+    # print("getRepresentativeSamples")
     
 
     # return representative_idxs, # recommendation_idxs[selected_samples]
@@ -82,13 +89,19 @@ def getSampleWithLargestDistance(distances, mask):
     # pdb.set_trace()
     return np.ma.max(distances, fill_value=0), np.ma.argmax(distances, fill_value=0)
 
-def getRepresentativeSamples(values, recommendation_idxs, train_values, k=250, mode='max_k_cover'):
+def getRepresentativeSamplesFromDistance(values, recommendation_idxs, train_values, k=250, mode='max_k_cover'):
 
     '''
     values: shape (n_samples, feature_len)
     train_values: shape (train_n_samples, feature_len)
     '''
 
+    pca = PCA(n_components = 100)
+    pca.fit(values)
+    values = pca.transform(values)
+
+    train_values = pca.transform(train_values)
+    
     distances_to_train = []
     representative_idxs = []
     for value in values:
@@ -124,3 +137,9 @@ def getRepresentativeSamples(values, recommendation_idxs, train_values, k=250, m
 def getRepresentativeAndUncertain(values, recommendation_idxs, representative_idxs):
     return values[recommendation_idxs][representative_idxs] # enters N=100, returns k=10
 
+def getRandomIdxs(dataset, n):
+    idxs = np.arange(len(dataset.paths_images))
+    np.random.shuffle(idxs)
+    idxs = idxs[:n]
+    
+    return idxs

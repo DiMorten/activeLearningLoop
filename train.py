@@ -23,6 +23,9 @@ np.random.seed(config['General']['seed'])
 
 list_data = config['Dataset']['paths']['list_datasets']
 
+config['Dataset']['splits']['split_train'] = 0.75
+config['Dataset']['splits']['split_val'] = 0.25
+config['Dataset']['splits']['split_test'] = 0.
 
 print(config['Dataset']['splits'])
 
