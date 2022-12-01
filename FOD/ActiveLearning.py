@@ -143,3 +143,76 @@ def getRandomIdxs(dataset, n):
     idxs = idxs[:n]
     
     return idxs
+
+
+class ActiveLearner():
+    def __init__(self, config):
+        self.config = config
+        self.k = self.config['ActiveLearning']['k']
+    def setTrainEncoderValues(self, train_encoder_values):
+        self.train_encoder_values = train_encoder_values
+
+    def setBufferMaskValues(self, buffer_mask_values):
+        self.buffer_mask_values = buffer_mask_values
+
+    def getTopRecommendations(self, uncertainty_values, encoder_values, train_encoder_values = None):
+
+        
+        if self.config['ActiveLearning']['diversity_method'] == False:        
+            K = self.k
+        else:
+            K = self.k * self.config['ActiveLearning']['beta']
+
+        ic(self.k, K)
+        # K = 20
+        # self.k = 10
+        if self.config['ActiveLearning']['spatial_buffer'] == False:
+            self.sorted_values, self.recommendation_idxs = getTopRecommendations(uncertainty_values, K=K, mode='uncertainty')
+        else:
+            self.sorted_values, self.recommendation_idxs = getTopRecommendationsBuffer(
+                uncertainty_values, self.buffer_mask_values, K=K, mode='uncertainty')
+
+        print("sorted_values.shape", self.sorted_values.shape)
+        
+        # print("sorted name IDs", np.array([x.split("\\")[-1] for x in test_data.paths_images])[self.recommendation_idxs])
+
+
+        print("sorted mean uncertainty", self.sorted_values)
+        if self.config['ActiveLearning']['diversity_method'] == 'cluster':   
+            representative_idxs, self.recommendation_idxs = getRepresentativeSamplesFromCluster(
+                encoder_values[self.recommendation_idxs], 
+                self.recommendation_idxs, 
+                k=self.k)
+
+            self.sorted_values = self.sorted_values[representative_idxs]
+        elif self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
+
+            representative_idxs, self.recommendation_idxs = getRepresentativeSamplesFromDistance(
+                encoder_values[self.recommendation_idxs], 
+                self.recommendation_idxs, 
+                train_values = train_encoder_values, 
+                k=self.k)
+                
+            self.sorted_values = self.sorted_values[representative_idxs]
+        
+
+    def getRandomIdxs(self, dataset, n):
+        self.recommendation_idxs = getRandomIdxs(dataset, n)
+        
+        # return idxs
+
+    def getRandomIdxsForPercentage(self, dataset):
+        sample_n_with_random_percentage = int(
+            self.config['ActiveLearning']['k'] * self.config['ActiveLearning']['random_percentage'])
+
+        ic(sample_n_with_random_percentage)
+        recommendation_idxs_with_random_percentage = getRandomIdxs(dataset, 
+            sample_n_with_random_percentage)
+
+        self.recommendation_idxs[-sample_n_with_random_percentage:] = recommendation_idxs_with_random_percentage
+
+    def saveRecommendationIdxs(self):
+        np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
+            self.recommendation_idxs)
+
+    

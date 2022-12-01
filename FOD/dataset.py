@@ -30,16 +30,16 @@ class AutoFocusDataset(Dataset):
         segmentation mask
         Args:
             :- config -: json config file
-            :- dataset_name -: str
+            :- input_folder_path -: str
             :- split -: split ['train', 'val', 'test']
     """
-    def __init__(self, config, dataset_name, split=None):
+    def __init__(self, config, input_folder_path, split=None):
         self.split = split
         self.config = config
 
-        path_images = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_images'])
-        path_depths = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_depths'])
-        path_segmentations = os.path.join(config['Dataset']['paths']['path_dataset'], dataset_name, config['Dataset']['paths']['path_segmentations'])
+        path_images = os.path.join(input_folder_path, config['Dataset']['paths']['path_images'])
+        path_depths = os.path.join(input_folder_path, config['Dataset']['paths']['path_depths'])
+        path_segmentations = os.path.join(input_folder_path, config['Dataset']['paths']['path_segmentations'])
 
         self.paths_images = get_total_paths(path_images, config['Dataset']['extensions']['ext_images'])
         self.paths_depths = get_total_paths(path_depths, config['Dataset']['extensions']['ext_depths'])
@@ -54,7 +54,7 @@ class AutoFocusDataset(Dataset):
         # check for segmentation
 
         # utility func for splitting
-        self.paths_images, self.paths_depths, self.paths_segmentations = get_splitted_dataset(config, self.split, dataset_name, self.paths_images, self.paths_depths, self.paths_segmentations)
+        self.paths_images, self.paths_depths, self.paths_segmentations = get_splitted_dataset(config, self.split, input_folder_path, self.paths_images, self.paths_depths, self.paths_segmentations)
 
         # Get the transforms
         self.transform_image, self.transform_depth, self.transform_seg = get_transforms(config)

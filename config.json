@@ -56,7 +56,7 @@
     },
     "Inference": {
         "get_metrics": false,
-        "save_images": false
+        "save_images": true
     },
     "ActiveLearning": {
         "dataset": "CorrosaoActiveLearningReduced",

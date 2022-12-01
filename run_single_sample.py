@@ -1,6 +1,6 @@
 import json
 from glob import glob
-from FOD.Predictor import PredictorMCDropout, PredictorSingleEntropyAL, PredictorSingleEntropy, PredictorTrain
+from FOD.Predictor import PredictorMCDropout, PredictorEntropyAL, PredictorEntropy, PredictorTrain
 import copy
 with open('config.json', 'r') as f:
     config = json.load(f)
@@ -20,5 +20,5 @@ else:
     dataset_config = config
 
 input_images = glob('input/*.jpg') + glob('input/*.png')
-predictor = PredictorSingleEntropy(dataset_config, input_images)
+predictor = PredictorEntropy(dataset_config, input_images)
 predictor.run()

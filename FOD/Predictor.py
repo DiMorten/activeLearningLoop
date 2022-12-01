@@ -26,9 +26,11 @@ import time
 
 from sklearn import metrics
 import FOD.ActiveLearning as al
+from FOD.ActiveLearning import ActiveLearner
 from icecream import ic
 import copy
 import FOD.utils as utils
+
 def enable_dropout(model):
     """ Function to enable the dropout layers during test-time """
     for m in model.modules():
@@ -160,34 +162,6 @@ class Predictor(object):
                     create_dir(path_dir_segmentation)
                     output_segmentation.save(os.path.join(path_dir_segmentation, os.path.basename(images)))
 
-                # path_dir_depths = os.path.join(self.output_dir, 'depths')
-                # create_dir(path_dir_depths)
-                # output_depth.save(os.path.join(path_dir_depths, os.path.basename(images)))
-
-                ## TO DO: Apply AutoFocus
-
-                # output_depth = np.array(output_depth)
-                # output_segmentation = np.array(output_segmentation)
-
-                # mask_person = (output_segmentation != 0)
-                # depth_person = output_depth*mask_person
-                # mean_depth_person = np.mean(depth_person[depth_person != 0])
-                # std_depth_person = np.std(depth_person[depth_person != 0])
-
-                # #print(mean_depth_person, std_depth_person)
-
-                # mask_total = (depth_person >= mean_depth_person-2*std_depth_person)
-                # mask_total = np.repeat(mask_total[:, :, np.newaxis], 3, axis=-1)
-                # region_to_blur = np.ones(np_im.shape)*(1-mask_total)
-
-                # #region_not_to_blur = np.zeros(np_im.shape) + np_im*(mask_total)
-                # region_not_to_blur = np_im
-                # blurred = cv2.blur(region_to_blur, (10, 10))
-
-                # #final_image = blurred + region_not_to_blur
-                # final_image = cv2.addWeighted(region_not_to_blur.astype(np.uint8), 0.5, blurred.astype(np.uint8), 0.5, 0)
-                # final_image = Image.fromarray((final_image).astype(np.uint8))
-                # final_image.save(os.path.join(self.output_dir, os.path.basename(images)))
 
     def inferDataLoader(self, dataloader, getEncoder = False):
         pbar = tqdm(dataloader)
@@ -201,7 +175,7 @@ class Predictor(object):
         encoder_values = []
 
         if self.config['ActiveLearning']['spatial_buffer'] == True:
-            self.buffer_mask_values = []
+            buffer_mask_values = []
         for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
             # X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
             X, Y_depths = X.to(self.device), Y_depths.to(self.device)            
@@ -251,7 +225,7 @@ class Predictor(object):
             uncertainty_values.append(pred_entropy_batch)
             if self.config['ActiveLearning']['spatial_buffer'] == True:
                 buffer_mask_batch = np.concatenate(buffer_mask_batch, axis=0)
-                self.buffer_mask_values.append(buffer_mask_batch)
+                buffer_mask_values.append(buffer_mask_batch)
 
             if getEncoder == True:
                 encoder_value = encoder_features.cpu().detach().numpy()
@@ -260,15 +234,16 @@ class Predictor(object):
         uncertainty_values = np.concatenate(uncertainty_values, axis=0)
         reference_values = np.concatenate(reference_values, axis=0)
         if self.config['ActiveLearning']['spatial_buffer'] == True:
-            self.buffer_mask_values = np.concatenate(self.buffer_mask_values, axis=0)
-            print("self.buffer_mask_values.shape", self.buffer_mask_values.shape)
+            buffer_mask_values = np.concatenate(buffer_mask_values, axis=0)
+            self.activeLearner.setBufferMaskValues(buffer_mask_values)
+            print("buffer_mask_values.shape", buffer_mask_values.shape)
 
         print(output_values.shape, uncertainty_values.shape, reference_values.shape) 
         if getEncoder == True:
             encoder_values = np.concatenate(encoder_values, axis=0)
             print("encoder_values.shape", encoder_values.shape)
             return output_values, reference_values, uncertainty_values, encoder_values
-        return output_values, reference_values, uncertainty_values  
+        return output_values, reference_values, uncertainty_values, _
 
 class PredictorMCDropout(Predictor):
     def __init__(self, config, input_images):
@@ -369,7 +344,7 @@ class PredictorMCDropout(Predictor):
 
                 # cv2.imwrite(os.path.join(path_dir_uncertainty, os.path.basename(images)), pred_entropy)
 
-class PredictorSingleEntropy(Predictor):
+class PredictorEntropy(Predictor):
     def __init__(self, config, input_images):
         super().__init__(config, input_images)
 
@@ -384,7 +359,6 @@ class PredictorSingleEntropy(Predictor):
 
                 tensor_im = self.transform_image(pil_im).unsqueeze(0)
 
-                softmax_segmentations = []
 
 
                 if isinstance(self.model, FocusOnDepth):
@@ -392,8 +366,6 @@ class PredictorSingleEntropy(Predictor):
                 else:
                     _, output_segmentation = (None, self.model(tensor_im))
 
-                # output_depth = 1-output_depth
-                # output_depth  = output_depth.squeeze(0)
                 output_segmentation = output_segmentation.squeeze(0)
 
                 softmax_segmentation = output_segmentation.cpu().detach().numpy()
@@ -404,29 +376,19 @@ class PredictorSingleEntropy(Predictor):
                 pred_entropy = uncertainty.single_experiment_entropy(
                     np.expand_dims(softmax_segmentation, axis=-1)).astype(np.float32)
                 
-                # pred_entropy = uncertainty.apply_spatial_buffer(
-                #     pred_entropy, softmax_segmentation
-                # )
+
                 ic(pred_entropy.shape)
 
                 output_segmentation = transforms.ToPILImage()(output_segmentation.argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
 
                 pred_entropy = cv2.resize(pred_entropy, original_size, interpolation=cv2.INTER_LINEAR)
 
-                # pdb.set_trace()
-                # exit(0)
-                
                 path_dir_segmentation = os.path.join(self.output_dir, 'segmentations')
 
                 path_dir_uncertainty_pred_entropy = os.path.join(self.output_dir, 'uncertainty_pred_entropy_single')
 
                 create_dir(path_dir_segmentation)
                 output_segmentation.save(os.path.join(path_dir_segmentation, os.path.basename(images)))
-
-                # path_dir_depths = os.path.join(self.output_dir, 'depths')
-                # create_dir(path_dir_depths)
-                # output_depth.save(os.path.join(path_dir_depths, os.path.basename(images)))
-
 
                 create_dir(path_dir_uncertainty_pred_entropy)
                 plt.imshow(pred_entropy, cmap = plt.cm.gray)
@@ -439,14 +401,7 @@ from torch.utils.data import ConcatDataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-def saveImages(reference_value, output_segmentation, pred_entropy, filename, output_dir):
-    print(np.unique(output_segmentation))
-
-    print(np.unique(reference_value))
-    images = filename
-
-    # output_segmentation = transforms.ToPILImage()(output_segmentation)# .resize(original_size, resample=Image.NEAREST)
-
+def createSaveFolders(output_dir):
     path_dir_segmentation = os.path.join(output_dir, 'segmentations')
     path_dir_reference = os.path.join(output_dir, 'reference')
 
@@ -454,6 +409,18 @@ def saveImages(reference_value, output_segmentation, pred_entropy, filename, out
 
     create_dir(path_dir_segmentation)
     create_dir(path_dir_reference)
+
+    return path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy
+
+def saveImages(reference_value, output_segmentation, pred_entropy, filename, 
+        path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy):
+    print(np.unique(output_segmentation))
+
+    print(np.unique(reference_value))
+    images = filename
+
+    # output_segmentation = transforms.ToPILImage()(output_segmentation)# .resize(original_size, resample=Image.NEAREST)
+
 
     print(os.path.join(path_dir_segmentation), os.path.basename(images))
     cv2.imwrite(os.path.join(path_dir_segmentation, os.path.basename(images)), output_segmentation*255)
@@ -471,6 +438,11 @@ def getSortedFilename(filename):
     filename_sorted = filename.split('.')
     filename_sorted = filename_sorted[0] + '_sorted.' + filename_sorted[1]
     return filename_sorted
+
+def getFilename(path):
+
+    filename = path.split("\\")[-1]
+    return filename
 
 from sklearn.utils import class_weight
 
@@ -507,12 +479,12 @@ class PredictorTrain(Predictor):
         print(class_weights)
 
 
-class PredictorSingleEntropyAL(Predictor):
-    def __init__(self, config, input_images):
-        super().__init__(config, input_images)
+class PredictorEntropyAL(Predictor):
+    def __init__(self, config, input_folder_path):
+        super().__init__(config, input_folder_path)
+        self.input_folder_path = input_folder_path
+        self.activeLearner = ActiveLearner(config)
 
-        # check_dropout_enabled(self.model)
-        # exit(0)
 
     def run(self):
         t0 = time.time()
@@ -525,35 +497,27 @@ class PredictorSingleEntropyAL(Predictor):
         config_active_learning['Dataset']['splits']['split_test'] = 1.
 
         test_data = AutoFocusDataset(config_active_learning, 
-            self.config['ActiveLearning']['dataset'], 'test')
+            self.input_folder_path, 'test')
         print(len(test_data.paths_images))
 
+        # ================= Select random indexes if active learning method is random
         if self.config['ActiveLearning']['method'] == 'random':
-            recommendation_idxs = al.getRandomIdxs(test_data, 
+            self.activeLearner.getRandomIdxs(test_data, 
                 self.config['ActiveLearning']['k'])
-            ic(self.config['ActiveLearning']['method'], len(recommendation_idxs))
-            np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
-                recommendation_idxs)
+            ic(self.config['ActiveLearning']['method'], len(self.activeLearner.recommendation_idxs))
+            
+            self.activeLearner.saveRecommendationIdxs()
             sys.exit(0)
-        if self.config['ActiveLearning']['random_percentage'] > 0:
-            sample_n_with_random_percentage = int(
-                self.config['ActiveLearning']['k'] * self.config['ActiveLearning']['random_percentage'])
 
-            ic(sample_n_with_random_percentage)
-            recommendation_idxs_with_random_percentage = al.getRandomIdxs(test_data, 
-                sample_n_with_random_percentage)
-
-        # pdb.set_trace()
+        # ================= Predict test data
         test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
         if self.config['ActiveLearning']['diversity_method'] != False:
             output_values, reference_values, uncertainty_values, encoder_values = self.inferDataLoader(
                 test_dataloader, getEncoder=True)
         else:
-            output_values, reference_values, uncertainty_values = self.inferDataLoader(
+            output_values, reference_values, uncertainty_values, _ = self.inferDataLoader(
                 test_dataloader)
         
-        # print(np.unique(output_values, return_counts=True))
-        # print(np.unique(reference_values, return_counts=True))
         
         if get_metrics == True:
             f1 = metrics.f1_score(reference_values.flatten(), output_values.flatten())
@@ -561,117 +525,83 @@ class PredictorSingleEntropyAL(Predictor):
             oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
             print("oa:", oa)
         
-        # k = 500
-        # k = 250
-        k = self.config['ActiveLearning']['k']
-        if self.config['ActiveLearning']['diversity_method'] == False:        
-            K = k
-        else:
-            K = k * self.config['ActiveLearning']['beta']
 
-        ic(k, K)
-        # K = 20
-        # k = 10
-        if self.config['ActiveLearning']['spatial_buffer'] == False:
-            sorted_values, recommendation_idxs = al.getTopRecommendations(uncertainty_values, K=K, mode='uncertainty')
-        else:
-            sorted_values, recommendation_idxs = al.getTopRecommendationsBuffer(
-                uncertainty_values, self.buffer_mask_values, K=K, mode='uncertainty')
-
-        print("sorted_values.shape", sorted_values.shape)
-        
-        # print("sorted name IDs", np.array([x.split("\\")[-1] for x in test_data.paths_images])[recommendation_idxs])
-
-        # test_data = AutoFocusDataset(self.config, list_data[0], 'test')
-        # test_data = utils.filterSamplesByIdxs(test_data, recommendation_idxs)
-        # test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
-        # encoder_values = self.inferDataLoader(test_dataloader, getEncoder=True)
-        # pdb.set_trace()
-        print("sorted mean uncertainty", sorted_values)
-        if self.config['ActiveLearning']['diversity_method'] == 'cluster':   
-            representative_idxs, recommendation_idxs = al.getRepresentativeSamplesFromCluster(encoder_values[recommendation_idxs], recommendation_idxs, k=k)
-            sorted_values = sorted_values[representative_idxs]
-        elif self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
+        if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
             train_data = AutoFocusDataset(self.config, 'CorrosaoTrainTest', 'train')
             train_dataloader = DataLoader(train_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
 
             _, _, _, train_encoder_values = self.inferDataLoader(
                 train_dataloader, getEncoder=True)
+            self.activeLearner.setTrainEncoderValues(train_encoder_values)
 
-            representative_idxs, recommendation_idxs = al.getRepresentativeSamplesFromDistance(encoder_values[recommendation_idxs], recommendation_idxs, 
-                train_values = train_encoder_values, k=k)
-            sorted_values = sorted_values[representative_idxs]
-        
+
+        self.activeLearner.getTopRecommendations(uncertainty_values, encoder_values)
+
         if self.config['ActiveLearning']['random_percentage'] > 0:
-            recommendation_idxs[-sample_n_with_random_percentage:] = recommendation_idxs_with_random_percentage
+            self.activeLearner.getRandomIdxsForPercentage(test_data)
 
-        np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
-            recommendation_idxs)
+        self.activeLearner.saveRecommendationIdxs()
 
-        print("recommendation IDs", recommendation_idxs)
+        print("recommendation IDs", self.activeLearner.recommendation_idxs)
         
-        print("sorted mean uncertainty", sorted_values)
-        if True:
-            # ==== get image accuracy
-            oa_values = []
-            for idx in range(len(reference_values)):
-                oa_values.append(round(metrics.accuracy_score(
-                    reference_values[idx].flatten(), output_values[idx].flatten()), 2))
+        print("sorted mean uncertainty", self.activeLearner.sorted_values)
 
-            print("sorted OA", np.array(oa_values)[recommendation_idxs])
-
-            f1_values = []
-            for idx in range(len(reference_values)):
-                f1_values.append(round(metrics.f1_score(
-                    reference_values[idx].flatten(), output_values[idx].flatten(), zero_division = 1), 2))
-
-            print("sorted F1 score", np.array(f1_values)[recommendation_idxs])
-
-        #pdb.set_trace()        
-
-        self.output_dir_sorted = self.output_dir + '_sorted'
-        self.output_dir_sorted_by_low = self.output_dir + '_sorted_by_low'
-        
         if self.save_images == True:
-            for k_value in range(20):
-                idx = recommendation_idxs[k_value]
+            print("Starting to save images...")
+            path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy = createSaveFolders(
+                    self.output_dir)
+            for idx in range(len(output_values)):
 
-                filename = getSortedFilename(test_data.paths_images[idx])
-
+                filename = getFilename(test_data.paths_images[idx])
+                
+                
                 saveImages(reference_values[idx], output_values[idx], 
                     uncertainty_values[idx], filename = filename, 
-                    output_dir = self.output_dir_sorted)
+                    path_dir_segmentation = path_dir_segmentation,
+                    path_dir_reference = path_dir_reference,
+                    path_dir_uncertainty_pred_entropy = path_dir_uncertainty_pred_entropy
+                    )
+
+
+
 
 
         print("time", time.time() - t0)
+        if False:
+            fig, axs = plt.subplots(2)
+            axs[0].plot(np.array(oa_values)[recommendation_idxs])
+            axs[0].set_ylabel('Overall Accuracy')
+            axs[0].set_xlabel('Sample ID')
+            axs[1].plot(sorted_values)
+            axs[1].set_ylabel('Uncertainty')
+            axs[1].set_xlabel('Sample ID')
+            
+            fig, axs = plt.subplots(2)
+            axs[0].plot(np.array(f1_values)[recommendation_idxs])
+            axs[0].set_ylabel('F1 Score')
+            axs[0].set_xlabel('Sample ID')
+            axs[1].plot(sorted_values)
+            axs[1].set_ylabel('Uncertainty')
+            axs[1].set_xlabel('Sample ID')
 
-        fig, axs = plt.subplots(2)
-        axs[0].plot(np.array(oa_values)[recommendation_idxs])
-        axs[0].set_ylabel('Overall Accuracy')
-        axs[0].set_xlabel('Sample ID')
-        axs[1].plot(sorted_values)
-        axs[1].set_ylabel('Uncertainty')
-        axs[1].set_xlabel('Sample ID')
+            plt.figure()
+            plt.scatter(sorted_values, np.array(oa_values)[recommendation_idxs])
+            plt.xlabel('Uncertainty')
+            plt.ylabel('Overall Accuracy')
+            plt.figure()
+            plt.scatter(sorted_values, np.array(f1_values)[recommendation_idxs])
+            plt.xlabel('Uncertainty')
+            plt.ylabel('F1')
         
-        fig, axs = plt.subplots(2)
-        axs[0].plot(np.array(f1_values)[recommendation_idxs])
-        axs[0].set_ylabel('F1 Score')
-        axs[0].set_xlabel('Sample ID')
-        axs[1].plot(sorted_values)
-        axs[1].set_ylabel('Uncertainty')
-        axs[1].set_xlabel('Sample ID')
+        # plt.show()
+        # pdb.set_trace()
 
-        plt.figure()
-        plt.scatter(sorted_values, np.array(oa_values)[recommendation_idxs])
-        plt.xlabel('Uncertainty')
-        plt.ylabel('Overall Accuracy')
-        plt.figure()
-        plt.scatter(sorted_values, np.array(f1_values)[recommendation_idxs])
-        plt.xlabel('Uncertainty')
-        plt.ylabel('F1')
-        
-        plt.show()
-        pdb.set_trace()
+        # output_values, reference_values, uncertainty_values
+
+        # ============= save images
+
+
+
 
 class PredictorWithMetrics(Predictor):
     def __init__(self, config, input_images):
@@ -694,7 +624,7 @@ class PredictorWithMetrics(Predictor):
             output_values, reference_values, uncertainty_values, encoder_values = self.inferDataLoader(
                 test_dataloader, getEncoder=True)
         else:
-            output_values, reference_values, uncertainty_values = self.inferDataLoader(
+            output_values, reference_values, uncertainty_values, _ = self.inferDataLoader(
                 test_dataloader)
         
         # print(np.unique(output_values, return_counts=True))

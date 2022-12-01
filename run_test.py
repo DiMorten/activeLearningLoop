@@ -16,8 +16,6 @@ dataset_name = config['Dataset']['paths']['list_datasets'][0]
 print(dataset_name)
 test_data = AutoFocusDataset(config, dataset_name, 'test')
 
-# print(test_data.paths_images)
-# pdb.set_trace()
 
 predictor = PredictorWithMetrics(config, test_data.paths_images)
 predictor.run()
