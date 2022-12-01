@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 import pdb
 from scipy.spatial import distance
 from icecream import ic
-
+import pandas as pd
 def getTopRecommendations(values, K=500, mode='uncertainty'):
     # values: shape (N, h, w)
 
@@ -215,4 +215,12 @@ class ActiveLearner():
         np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
             self.recommendation_idxs)
 
-    
+    def saveSelectedImageNames(self, dataset):
+        selected_image_names = np.array([x.split("\\")[-1] for x in dataset.paths_images])[self.recommendation_idxs]
+        print(
+            "sorted name IDs", selected_image_names)
+        #  convert array into dataframe
+        df = pd.DataFrame(selected_image_names)
+        
+        # save the dataframe as a csv file
+        df.to_csv("selected_image_names.csv")

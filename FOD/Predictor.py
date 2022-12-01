@@ -414,15 +414,15 @@ def createSaveFolders(output_dir):
 
 def saveImages(reference_value, output_segmentation, pred_entropy, filename, 
         path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy):
-    print(np.unique(output_segmentation))
+    # print(np.unique(output_segmentation))
 
-    print(np.unique(reference_value))
+    # print(np.unique(reference_value))
     images = filename
 
     # output_segmentation = transforms.ToPILImage()(output_segmentation)# .resize(original_size, resample=Image.NEAREST)
 
 
-    print(os.path.join(path_dir_segmentation), os.path.basename(images))
+    # print(os.path.join(path_dir_segmentation), os.path.basename(images))
     cv2.imwrite(os.path.join(path_dir_segmentation, os.path.basename(images)), output_segmentation*255)
     cv2.imwrite(os.path.join(path_dir_reference, os.path.basename(images)), reference_value*255)
 
@@ -500,14 +500,7 @@ class PredictorEntropyAL(Predictor):
             self.input_folder_path, 'test')
         print(len(test_data.paths_images))
 
-        # ================= Select random indexes if active learning method is random
-        if self.config['ActiveLearning']['method'] == 'random':
-            self.activeLearner.getRandomIdxs(test_data, 
-                self.config['ActiveLearning']['k'])
-            ic(self.config['ActiveLearning']['method'], len(self.activeLearner.recommendation_idxs))
-            
-            self.activeLearner.saveRecommendationIdxs()
-            sys.exit(0)
+
 
         # ================= Predict test data
         test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
@@ -524,7 +517,16 @@ class PredictorEntropyAL(Predictor):
             print("f1:", f1)
             oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
             print("oa:", oa)
-        
+
+
+        # ================= Select random indexes if active learning method is random
+        if self.config['ActiveLearning']['method'] == 'random':
+            self.activeLearner.getRandomIdxs(test_data, 
+                self.config['ActiveLearning']['k'])
+            ic(self.config['ActiveLearning']['method'], len(self.activeLearner.recommendation_idxs))
+            
+            # self.activeLearner.saveRecommendationIdxs()
+            # sys.exit(0)
 
         if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
             train_data = AutoFocusDataset(self.config, 'CorrosaoTrainTest', 'train')
@@ -534,13 +536,14 @@ class PredictorEntropyAL(Predictor):
                 train_dataloader, getEncoder=True)
             self.activeLearner.setTrainEncoderValues(train_encoder_values)
 
-
-        self.activeLearner.getTopRecommendations(uncertainty_values, encoder_values)
+        if self.config['ActiveLearning']['method'] != 'random':
+            self.activeLearner.getTopRecommendations(uncertainty_values, encoder_values)
 
         if self.config['ActiveLearning']['random_percentage'] > 0:
             self.activeLearner.getRandomIdxsForPercentage(test_data)
 
         self.activeLearner.saveRecommendationIdxs()
+        self.activeLearner.saveSelectedImageNames(test_data)
 
         print("recommendation IDs", self.activeLearner.recommendation_idxs)
         
