@@ -20,8 +20,9 @@
         "seed":0,
         "patch_size":16,
         "model_type":"deeplab",
-        "test_batch_size": 4,
-        "exp_id": 0
+        "test_batch_size": 1,
+        "exp_id": 0,
+        "load_reference_flag": false
     },
     "Dataset":{
         "paths":{
@@ -32,7 +33,7 @@
             "path_depths":"depths"
         },
         "extensions":{
-            "ext_images":".png",
+            "ext_images":".JPG",
             "ext_segmentations":".png",
             "ext_depths":".png"
         },
@@ -45,7 +46,8 @@
             "resize":512,
             "p_flip":0.5,
             "p_crop":0.3,
-            "p_rot":0.2
+            "p_rot":0.2,
+            "resize_images": false
         },
         "classes":{
             "1": {
@@ -62,7 +64,7 @@
         "dataset": "CorrosaoActiveLearningReduced",
         "full_train": false,
         "method": "uncertainty",
-        "diversity_method": "cluster",
+        "diversity_method": false,
         "pca": true,
         "spatial_buffer": false,
         "k": 100,

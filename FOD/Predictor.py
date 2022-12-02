@@ -30,6 +30,7 @@ from FOD.ActiveLearning import ActiveLearner
 from icecream import ic
 import copy
 import FOD.utils as utils
+from glob import glob
 
 def enable_dropout(model):
     """ Function to enable the dropout layers during test-time """
@@ -54,7 +55,7 @@ class Predictor(object):
         self.device = torch.device(self.config['General']['device'] if torch.cuda.is_available() else "cpu")
         print("device: %s" % self.device)
         resize = config['Dataset']['transforms']['resize']
-        # resize = 513
+
         if config['General']['model_type'] == 'FocusOnDepth':
             self.model = FocusOnDepth(
                         image_size  =   (3,resize,resize),
@@ -84,59 +85,34 @@ class Predictor(object):
             
             self.model = network('tu-xception41', encoder_weights='imagenet', in_channels=3,
                     classes=2)                
-            # path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
 
         elif config['General']['model_type'] == 'deeplab_dropout':        
             
             self.model = smpd.DeepLabV3Plus('resnet34', encoder_weights='imagenet', in_channels=3,
                 classes=2)
-            # path_model = os.path.join(config['General']['path_model'], 'DeepLabV3Plus.p')
 
-        
         path_model = os.path.join(self.config['General']['path_model'], self.model.__class__.__name__ + 
             '_' + str(self.config['General']['exp_id']) + '.p')
         ic(path_model)
-        '''
-        self.model = ResUnetPlusPlus(
-                    image_size  =   (3,resize,resize),
-                    emb_dim     =   config['General']['emb_dim'],
-                    resample_dim=   config['General']['resample_dim'],
-                    read        =   config['General']['read'],
-                    nclasses    =   len(config['Dataset']['classes']) + 1,
-                    hooks       =   config['General']['hooks'],
-                    model_timm  =   config['General']['model_timm'],
-                    type        =   self.type,
-                    patch_size  =   config['General']['patch_size'],
-        )
-        '''
 
-        # path_model = os.path.join(config['General']['path_model'], 'ResUnetPlusPlus.p')
-        
+
         self.model.load_state_dict(
             torch.load(path_model, map_location=self.device)['model_state_dict']
         )
         self.model.eval()
 
-        '''
-        if config['General']['model_type'] == 'deeplab':   
-            dropout_ = DropoutHook(prob=0.2)
-            # self.model.apply(dropout_.register_hook)
-
-            print(self.model.encoder.model.blocks_1.stack)
-
-            # self.model.encoder.model.blocks_1.apply(dropout_.register_hook)
-            self.model.encoder.model.blocks_4.apply(dropout_.register_hook)
-            self.model.encoder.model.blocks_7.apply(dropout_.register_hook)
-            self.model.encoder.model.blocks_10.apply(dropout_.register_hook)
-            self.model.encoder.model.blocks_12.apply(dropout_.register_hook)
-        '''
-        self.transform_image = transforms.Compose([
-            transforms.Resize((resize, resize)),
-            # transforms.Resize((528, 528)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])
-        
+        if self.config['Dataset']['transforms']['resize_images'] == True:
+            self.transform_image = transforms.Compose([
+                # transforms.Resize((resize, resize)),
+                # transforms.Resize((528, 528)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+            ])
+        else:
+            self.transform_image = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+            ])                    
         self.output_dir = self.config['General']['path_predicted_images']
         create_dir(self.output_dir)
 
@@ -152,10 +128,8 @@ class Predictor(object):
                 else:
                     _, output_segmentation = (None, self.model(tensor_im))
 
-                # output_depth = 1-output_depth
                 if self.save_images == True:
                     output_segmentation = transforms.ToPILImage()(output_segmentation.squeeze(0).argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
-                    # output_depth = transforms.ToPILImage()(output_depth.squeeze(0).float()).resize(original_size, resample=Image.BICUBIC)
 
                     path_dir_segmentation = os.path.join(self.output_dir, 'segmentations')
                     path_dir_depths = os.path.join(self.output_dir, 'depths')
@@ -176,9 +150,9 @@ class Predictor(object):
 
         if self.config['ActiveLearning']['spatial_buffer'] == True:
             buffer_mask_values = []
-        for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
-            # X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
-            X, Y_depths = X.to(self.device), Y_depths.to(self.device)            
+        for i, (X, Y_segmentations) in enumerate(pbar):
+            # X, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
+            X = X.to(self.device)            
 
             # ======= Predict
             if isinstance(self.model, FocusOnDepth):
@@ -198,7 +172,8 @@ class Predictor(object):
             output = softmax_segmentation.argmax(axis=1).astype(np.uint8)
 
             output_values.append(output)
-            reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
+            if self.config['General']['load_reference_flag'] == True:
+                reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
 
             # ========= Apply softmax
             softmax_segmentation = softmax(softmax_segmentation, axis=1)[:, 1]
@@ -232,13 +207,16 @@ class Predictor(object):
                 encoder_values.append(encoder_value)
         output_values = np.concatenate(output_values, axis=0)
         uncertainty_values = np.concatenate(uncertainty_values, axis=0)
-        reference_values = np.concatenate(reference_values, axis=0)
+        if self.config['General']['load_reference_flag'] == True:
+            reference_values = np.concatenate(reference_values, axis=0)
         if self.config['ActiveLearning']['spatial_buffer'] == True:
             buffer_mask_values = np.concatenate(buffer_mask_values, axis=0)
             self.activeLearner.setBufferMaskValues(buffer_mask_values)
             print("buffer_mask_values.shape", buffer_mask_values.shape)
 
-        print(output_values.shape, uncertainty_values.shape, reference_values.shape) 
+        print(output_values.shape, uncertainty_values.shape)
+        if self.config['General']['load_reference_flag'] == True:
+            print(reference_values.shape) 
         if getEncoder == True:
             encoder_values = np.concatenate(encoder_values, axis=0)
             print("encoder_values.shape", encoder_values.shape)
@@ -345,9 +323,10 @@ class PredictorMCDropout(Predictor):
                 # cv2.imwrite(os.path.join(path_dir_uncertainty, os.path.basename(images)), pred_entropy)
 
 class PredictorEntropy(Predictor):
-    def __init__(self, config, input_images):
+    def __init__(self, config, input_folder_path):
+        input_images = glob(input_folder_path + '/*.jpg') + glob(input_folder_path + '/*.png') + glob(input_folder_path + '/*.jPG')
         super().__init__(config, input_images)
-
+        
         # check_dropout_enabled(self.model)
         # exit(0)
 
@@ -365,6 +344,7 @@ class PredictorEntropy(Predictor):
                     _, output_segmentation = self.model(tensor_im)
                 else:
                     _, output_segmentation = (None, self.model(tensor_im))
+
 
                 output_segmentation = output_segmentation.squeeze(0)
 
@@ -412,25 +392,6 @@ def createSaveFolders(output_dir):
 
     return path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy
 
-def saveImages(reference_value, output_segmentation, pred_entropy, filename, 
-        path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy):
-    # print(np.unique(output_segmentation))
-
-    # print(np.unique(reference_value))
-    images = filename
-
-    # output_segmentation = transforms.ToPILImage()(output_segmentation)# .resize(original_size, resample=Image.NEAREST)
-
-
-    # print(os.path.join(path_dir_segmentation), os.path.basename(images))
-    cv2.imwrite(os.path.join(path_dir_segmentation, os.path.basename(images)), output_segmentation*255)
-    cv2.imwrite(os.path.join(path_dir_reference, os.path.basename(images)), reference_value*255)
-
-    create_dir(path_dir_uncertainty_pred_entropy)
-    plt.imshow(pred_entropy, cmap = plt.cm.gray)
-    plt.axis('off')
-    plt.savefig(os.path.join(path_dir_uncertainty_pred_entropy, os.path.basename(images)), 
-        dpi=150, bbox_inches='tight', pad_inches=0.0)
         
 def getSortedFilename(filename):
 
@@ -469,7 +430,7 @@ class PredictorTrain(Predictor):
         output_values = []
         uncertainty_values = []
         reference_values = []
-        for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
+        for i, (X, Y_segmentations) in enumerate(pbar):
             reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
         reference_values = np.concatenate(reference_values, axis=0)
         class_weights = class_weight.compute_class_weight(
@@ -485,81 +446,90 @@ class PredictorEntropyAL(Predictor):
         self.input_folder_path = input_folder_path
         self.activeLearner = ActiveLearner(config)
 
-
     def run(self):
-        t0 = time.time()
 
-        get_metrics = self.config['Inference']['get_metrics']
+
 
         config_active_learning = copy.deepcopy(self.config)
         config_active_learning['Dataset']['splits']['split_train'] = 0.
         config_active_learning['Dataset']['splits']['split_val'] = 0.
         config_active_learning['Dataset']['splits']['split_test'] = 1.
 
-        test_data = AutoFocusDataset(config_active_learning, 
+        self.test_data = AutoFocusDataset(config_active_learning, 
             self.input_folder_path, 'test')
-        print(len(test_data.paths_images))
+        print(len(self.test_data.paths_images))
 
 
 
         # ================= Predict test data
-        test_dataloader = DataLoader(test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
+        test_dataloader = DataLoader(self.test_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
         if self.config['ActiveLearning']['diversity_method'] != False:
-            output_values, reference_values, uncertainty_values, encoder_values = self.inferDataLoader(
+            self.output_values, self.reference_values, self.uncertainty_values, self.encoder_values = self.inferDataLoader(
                 test_dataloader, getEncoder=True)
         else:
-            output_values, reference_values, uncertainty_values, _ = self.inferDataLoader(
+            self.output_values, self.reference_values, self.uncertainty_values, _ = self.inferDataLoader(
                 test_dataloader)
-        
-        
-        if get_metrics == True:
-            f1 = metrics.f1_score(reference_values.flatten(), output_values.flatten())
+
+        if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
+            train_data = AutoFocusDataset(self.config, 'CorrosaoTrainTest', 'train')
+            train_dataloader = DataLoader(train_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
+
+            _, _, _, self.train_encoder_values = self.inferDataLoader(
+                train_dataloader, getEncoder=True)
+
+        # ================= Get test metrics
+    def getMetrics(self): 
+
+        if self.config['Inference']['get_metrics'] == True:
+            f1 = metrics.f1_score(self.reference_values.flatten(), self.output_values.flatten())
             print("f1:", f1)
-            oa = metrics.accuracy_score(reference_values.flatten(), output_values.flatten())
+            oa = metrics.accuracy_score(self.reference_values.flatten(), self.output_values.flatten())
             print("oa:", oa)
+
+    def runActiveLearning(self):
+
 
 
         # ================= Select random indexes if active learning method is random
+
         if self.config['ActiveLearning']['method'] == 'random':
-            self.activeLearner.getRandomIdxs(test_data, 
+            self.activeLearner.getRandomIdxs(self.test_data, 
                 self.config['ActiveLearning']['k'])
             ic(self.config['ActiveLearning']['method'], len(self.activeLearner.recommendation_idxs))
             
             # self.activeLearner.saveRecommendationIdxs()
             # sys.exit(0)
 
-        if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
-            train_data = AutoFocusDataset(self.config, 'CorrosaoTrainTest', 'train')
-            train_dataloader = DataLoader(train_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
 
-            _, _, _, train_encoder_values = self.inferDataLoader(
-                train_dataloader, getEncoder=True)
-            self.activeLearner.setTrainEncoderValues(train_encoder_values)
+        if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
+            self.activeLearner.setTrainEncoderValues(self.train_encoder_values)
 
         if self.config['ActiveLearning']['method'] != 'random':
-            self.activeLearner.getTopRecommendations(uncertainty_values, encoder_values)
+            self.activeLearner.getTopRecommendations(self.uncertainty_values, self.encoder_values)
 
         if self.config['ActiveLearning']['random_percentage'] > 0:
-            self.activeLearner.getRandomIdxsForPercentage(test_data)
+            self.activeLearner.getRandomIdxsForPercentage(self.test_data)
 
         self.activeLearner.saveRecommendationIdxs()
-        self.activeLearner.saveSelectedImageNames(test_data)
+        self.activeLearner.saveSelectedImageNames(self.test_data)
 
         print("recommendation IDs", self.activeLearner.recommendation_idxs)
         
         print("sorted mean uncertainty", self.activeLearner.sorted_values)
 
+    def saveImages(self):
+
         if self.save_images == True:
             print("Starting to save images...")
             path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy = createSaveFolders(
                     self.output_dir)
-            for idx in range(len(output_values)):
+            for idx in range(len(self.output_values)):
 
-                filename = getFilename(test_data.paths_images[idx])
+                filename = getFilename(self.test_data.paths_images[idx])
                 
                 
-                saveImages(reference_values[idx], output_values[idx], 
-                    uncertainty_values[idx], filename = filename, 
+                utils.saveImages(self.output_values[idx], 
+                    self.uncertainty_values[idx], filename = filename, 
                     path_dir_segmentation = path_dir_segmentation,
                     path_dir_reference = path_dir_reference,
                     path_dir_uncertainty_pred_entropy = path_dir_uncertainty_pred_entropy
@@ -569,7 +539,7 @@ class PredictorEntropyAL(Predictor):
 
 
 
-        print("time", time.time() - t0)
+        
         if False:
             fig, axs = plt.subplots(2)
             axs[0].plot(np.array(oa_values)[recommendation_idxs])

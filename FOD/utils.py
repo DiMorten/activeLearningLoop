@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch
-
+import matplotlib.pyplot as plt
 
 from glob import glob
 from PIL import Image
@@ -35,7 +35,7 @@ def getFilesWithoutBlankReference(dataset_name, files):
 def get_total_paths(path, ext):
     return glob(os.path.join(path, '*'+ext))
 
-def get_splitted_dataset(config, split, input_folder_path, path_images, path_depths, path_segmentation):
+def get_splitted_dataset(config, split, input_folder_path, path_images, path_segmentation = None):
     list_files = [os.path.basename(im) for im in path_images]
     np.random.seed(config['General']['seed'])
     np.random.shuffle(list_files)
@@ -56,7 +56,11 @@ def get_splitted_dataset(config, split, input_folder_path, path_images, path_dep
     # exit(0)
 
     path_images = [os.path.join(input_folder_path, config['Dataset']['paths']['path_images'], im[:-4]+config['Dataset']['extensions']['ext_images']) for im in selected_files]
-    return path_images, path_depths, path_segmentation
+    if config['General']['load_reference_flag'] == True:
+        path_segmentation = [os.path.join(input_folder_path, config['Dataset']['paths']['path_segmentations'], im[:-4]+config['Dataset']['extensions']['ext_images']) for im in selected_files]
+        return path_images, path_segmentation
+    else:
+        return path_images, None
 
 '''
 def get_splitted_dataset(config, split, input_folder_path, path_images, path_depths, path_segmentation):
@@ -171,3 +175,22 @@ def filterSamplesByIdxs(dataset, idxs):
     dataset.paths_segmentations = np.array(dataset.paths_segmentations)[idxs]
     return dataset
 
+
+def saveImages(output_segmentation, pred_entropy, filename, 
+        path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy):
+    # print(np.unique(output_segmentation))
+
+    # print(np.unique(reference_value))
+    images = filename
+
+    # output_segmentation = transforms.ToPILImage()(output_segmentation)# .resize(original_size, resample=Image.NEAREST)
+
+
+    # print(os.path.join(path_dir_segmentation), os.path.basename(images))
+    cv2.imwrite(os.path.join(path_dir_segmentation, os.path.basename(images)), output_segmentation*255)
+    
+    create_dir(path_dir_uncertainty_pred_entropy)
+    plt.imshow(pred_entropy, cmap = plt.cm.gray)
+    plt.axis('off')
+    plt.savefig(os.path.join(path_dir_uncertainty_pred_entropy, os.path.basename(images)), 
+        dpi=150, bbox_inches='tight', pad_inches=0.0)
