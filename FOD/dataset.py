@@ -90,7 +90,7 @@ class AutoFocusDataset(Dataset):
         # depth = self.transform_depth(Image.open(self.paths_depths[idx]))
         if self.config['General']['load_reference_flag'] == True:
             segmentation = self.transform_seg(Image.open(self.paths_segmentations[idx]))
-        imgorig = image.clone()
+        # imgorig = image.clone()
 
         if random.random() < self.p_flip:
             image = TF.hflip(image)
@@ -143,86 +143,3 @@ class AutoFocusDataset(Dataset):
             return image, []
 
 
-class AutoFocusDatasetNoReference():
-    """
-        Dataset class for the AutoFocus Task. Requires for each image, its depth ground-truth and
-        segmentation mask
-        Args:
-            :- config -: json config file
-            :- input_folder_path -: str
-            :- split -: split ['train', 'val', 'test']
-    """
-    def __init__(self, config, input_folder_path, split=None):
-        self.split = split
-        self.config = config
-
-        path_images = os.path.join(input_folder_path, config['Dataset']['paths']['path_images'])
-
-        self.paths_images = get_total_paths(path_images, config['Dataset']['extensions']['ext_images'])
-
-        assert (self.split in ['train', 'test', 'val']), "Invalid split!"
-        print(len(self.paths_images))
-        # pdb.set_trace()
-        assert (config['Dataset']['splits']['split_train']+config['Dataset']['splits']['split_test']+config['Dataset']['splits']['split_val'] == 1), "Invalid splits (sum must be equal to 1)"
-        # check for segmentation
-
-        # utility func for splitting
-        self.paths_images = get_splitted_dataset(config, self.split, input_folder_path, self.paths_images)
-
-        # Get the transforms
-        self.transform_image, _, _ = get_transforms(config)
-
-        # get p_flip from config
-        self.p_flip = config['Dataset']['transforms']['p_flip'] if split=='train' else 0
-        self.p_crop = config['Dataset']['transforms']['p_crop'] if split=='train' else 0
-        self.p_rot = config['Dataset']['transforms']['p_rot'] if split=='train' else 0
-        self.resize = config['Dataset']['transforms']['resize']
-
-    def __len__(self):
-        """
-            Function to get the number of images using the given list of images
-        """
-        return len(self.paths_images)
-
-    def __getitem__(self, idx):
-        """
-            Getter function in order to get the triplet of images / depth maps and segmentation masks
-        """
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-        image = self.transform_image(Image.open(self.paths_images[idx]))
-        # ic(Image.open(self.paths_depths[idx]).mode)
-        # ic(Image.open(self.paths_segmentations[idx]).mode)
-
-        imgorig = image.clone()
-
-        if random.random() < self.p_flip:
-            image = TF.hflip(image)
-
-        if random.random() < self.p_crop:
-            random_size = random.randint(256, self.resize-1)
-            max_size = self.resize - random_size
-            left = int(random.random()*max_size)
-            top = int(random.random()*max_size)
-            image = TF.crop(image, top, left, random_size, random_size)
-            image = transforms.Resize((self.resize, self.resize))(image)
-
-        if random.random() < self.p_rot:
-            #rotate
-            random_angle = random.random()*20 - 10 #[-10 ; 10]
-            mask = torch.ones((1,self.resize,self.resize)) #useful for the resize at the end
-            mask = TF.rotate(mask, random_angle, interpolation=transforms.InterpolationMode.BILINEAR)
-            image = TF.rotate(image, random_angle, interpolation=transforms.InterpolationMode.BILINEAR)
-            #crop to remove black borders due to the rotation
-            left = torch.argmax(mask[:,0,:]).item()
-            top = torch.argmax(mask[:,:,0]).item()
-            coin = min(left,top)
-            size = self.resize - 2*coin
-            image = TF.crop(image, coin, coin, size, size)
-
-            #Resize
-            image = transforms.Resize((self.resize, self.resize))(image)
-
-        # show([imgorig, image, depth, segmentation])
-        # exit(0)
-        return image

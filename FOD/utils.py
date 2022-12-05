@@ -88,11 +88,19 @@ def get_splitted_dataset(config, split, input_folder_path, path_images, path_dep
 '''
 def get_transforms(config):
     im_size = config['Dataset']['transforms']['resize']
-    transform_image = transforms.Compose([
-        transforms.Resize((im_size, im_size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
+    if config['Dataset']['transforms']['resize_images'] == True:
+        
+        transform_image = transforms.Compose([
+            transforms.Resize((im_size, im_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])
+    else:
+        transform_image = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        ])        
+
     transform_depth = transforms.Compose([
         transforms.Resize((im_size, im_size)),
         transforms.Grayscale(num_output_channels=1) ,

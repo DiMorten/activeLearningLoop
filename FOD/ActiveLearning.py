@@ -224,3 +224,35 @@ class ActiveLearner():
         
         # save the dataframe as a csv file
         df.to_csv("selected_image_names.csv")
+
+
+    def run(self, predictor):
+
+        if self.config['ActiveLearning']['method'] == 'random':
+            self.getRandomIdxs(predictor.test_data, 
+                self.config['ActiveLearning']['k'])
+            ic(self.config['ActiveLearning']['method'], len(self.recommendation_idxs))
+            
+            # self.saveRecommendationIdxs()
+            # sys.exit(0)
+
+
+        if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
+            self.setTrainEncoderValues(self.train_encoder_values)
+
+        if self.config['ActiveLearning']['method'] != 'random':
+            if self.config['ActiveLearning']['diversity_method'] != False:
+                self.getTopRecommendations(predictor.uncertainty_values, predictor.encoder_values)
+            else:
+                self.getTopRecommendations(predictor.uncertainty_values, None)
+
+
+        if self.config['ActiveLearning']['random_percentage'] > 0:
+            self.getRandomIdxsForPercentage(predictor.test_data)
+
+        self.saveRecommendationIdxs()
+        self.saveSelectedImageNames(predictor.test_data)
+
+        print("recommendation IDs", self.recommendation_idxs)
+        
+        print("sorted mean uncertainty", self.sorted_values)
