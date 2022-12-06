@@ -14,15 +14,36 @@ import copy
 
 import FOD.utils as utils
 from icecream import ic
-
+import argparse
 ic.configureOutput(includeContext=True)
+
+app_desc = ''
+parser = argparse.ArgumentParser(
+    description = app_desc, 
+    formatter_class = argparse.RawDescriptionHelpFormatter,
+    allow_abbrev=True)
+
+parser.add_argument('-filename', type=str)
+
+args = parser.parse_args()
+print(args)
+
 
 with open('config.json', 'r') as f:
     config = json.load(f)
 np.random.seed(config['General']['seed'])
+'''
+if args.filename is not None:
+    list_data = [args.filename]
+else:
+    list_data = [config['Dataset']['paths']['path_dataset'] + '/' + x for x in config['Dataset']['paths']['list_datasets']]
+'''
 
-list_data = config['Dataset']['paths']['list_datasets']
-
+# list_data = config['Dataset']['paths']['list_datasets']
+list_data = [config['Dataset']['paths']['path_dataset'] + '/' + x for x in config['Dataset']['paths']['list_datasets']]
+print(list_data)
+# pdb.set_trace()
+config['General']['load_reference_flag'] = True
 config['Dataset']['splits']['split_train'] = 0.75
 config['Dataset']['splits']['split_val'] = 0.25
 config['Dataset']['splits']['split_test'] = 0.

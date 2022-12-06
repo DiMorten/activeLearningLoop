@@ -56,6 +56,7 @@ class AutoFocusDataset(Dataset):
         assert (config['Dataset']['splits']['split_train']+config['Dataset']['splits']['split_test']+config['Dataset']['splits']['split_val'] == 1), "Invalid splits (sum must be equal to 1)"
         # check for segmentation
 
+        # ic(input_folder_path, self.paths_images)
         # utility func for splitting
         if config['General']['load_reference_flag'] == True:
             self.paths_images, self.paths_segmentations = get_splitted_dataset(
@@ -132,7 +133,7 @@ class AutoFocusDataset(Dataset):
                 segmentation = TF.crop(segmentation, coin, coin, size, size)
             #Resize
             image = transforms.Resize((self.resize, self.resize))(image)
-            depth = transforms.Resize((self.resize, self.resize))(depth)
+            #depth = transforms.Resize((self.resize, self.resize))(depth)
             if self.config['General']['load_reference_flag'] == True:
                 segmentation = transforms.Resize((self.resize, self.resize), interpolation=transforms.InterpolationMode.NEAREST)(segmentation)
         # show([imgorig, image, depth, segmentation])

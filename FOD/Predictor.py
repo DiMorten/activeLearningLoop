@@ -252,7 +252,8 @@ class Predictor(object):
             for i, (X, Y_segmentations) in enumerate(pbar):
                 # X, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
                 X = X.to(self.device)            
-
+                if self.config['General']['load_reference_flag'] == True:
+                    Y_segmentations = Y_segmentations.to(self.device)
                 # ======= Predict
                 if isinstance(self.model, FocusOnDepth):
                     _, output_segmentations = self.model(X)

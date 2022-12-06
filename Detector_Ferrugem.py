@@ -12,16 +12,16 @@ if __name__ == "__main__":
         description = app_desc, 
         formatter_class = argparse.RawDescriptionHelpFormatter,
         allow_abbrev=True)
+
     parser.add_argument('-filename', type=str)
     parser.add_argument('-load_reference_flag', type=str)
 
-    parser.add_argument('-train', type=bool, default=False)
+    parser.add_argument('-train', type=bool, default=True)
     parser.add_argument('-inference', type=bool, default=True)
     parser.add_argument('-active_learning', type=bool, default=True)
     
     args = parser.parse_args()
     print(args)
-    input_folder_path = args.filename
     
     t0 = time.time()
 
@@ -31,20 +31,19 @@ if __name__ == "__main__":
     if args.load_reference_flag is not None:
         config['General']['load_reference_flag'] = args.load_reference_flag
 
-    if os.path.exists(input_folder_path):
+    if os.path.exists(args.filename):
         print("Arquivo encontrado com sucesso")
 
 
         if args.train == True:
-            trainer = Trainer()
-            trainer.train()
+            os.system("python train.py")
 
         if args.inference == True:
-            predictor = PredictorEntropyAL(config, input_folder_path)
+            predictor = PredictorEntropyAL(config, args.filename)
             predictor.run()
 
         if args.active_learning == True:
-            predictor = PredictorEntropyAL(config, input_folder_path)
+            predictor = PredictorEntropyAL(config, args.filename)
             predictor.loadPredictionResults()
             activeLearner = ActiveLearner(config)
             activeLearner.run(predictor)

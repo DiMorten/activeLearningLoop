@@ -155,9 +155,10 @@ class Trainer(object):
             self.model.train()
             pbar = tqdm(train_dataloader)
             pbar.set_description("Training")
-            for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
+            
+            for i, (X, Y_segmentations) in enumerate(pbar):
                 # get the inputs; data is a list of [inputs, labels]
-                X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)
+                X, Y_segmentations = X.to(self.device), Y_segmentations.to(self.device)
                 # zero the parameter gradients
                 if isinstance(self.model, FocusOnDepth):
                     self.optimizer_backbone.zero_grad()
@@ -170,10 +171,9 @@ class Trainer(object):
                 
                 output_depths = output_depths.squeeze(1) if output_depths != None else None
 
-                Y_depths = Y_depths.squeeze(1) #1xHxW -> HxW
                 Y_segmentations = Y_segmentations.squeeze(1) #1xHxW -> HxW
                 # get loss
-                loss = self.loss_depth(output_depths, Y_depths) + self.loss_segmentation(output_segmentations, Y_segmentations)
+                loss = self.loss_segmentation(output_segmentations, Y_segmentations)
                 loss.backward()
                 # step optimizer
                 self.optimizer_scratch.step()
@@ -184,8 +184,6 @@ class Trainer(object):
                 if np.isnan(running_loss):
                     print('\n',
                         X.min().item(), X.max().item(),'\n',
-                        Y_depths.min().item(), Y_depths.max().item(),'\n',
-                        output_depths.min().item(), output_depths.max().item(),'\n',
                         loss.item(),
                     )
                     exit(0)
@@ -224,36 +222,30 @@ class Trainer(object):
         val_loss = 0.
         self.model.eval()
         X_1 = None
-        Y_depths_1 = None
         Y_segmentations_1 = None
-        output_depths_1 = None
         output_segmentations_1 = None
         with torch.no_grad():
             pbar = tqdm(val_dataloader)
             pbar.set_description("Validation")
-            for i, (X, Y_depths, Y_segmentations) in enumerate(pbar):
-                X, Y_depths, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)
+            for i, (X, Y_segmentations) in enumerate(pbar):
+                X, Y_segmentations = X.to(self.device), Y_segmentations.to(self.device)
                 if isinstance(self.model, FocusOnDepth):
                     output_depths, output_segmentations = self.model(X)
                 else:
                     output_depths, output_segmentations = (None, self.model(X))
 
-                output_depths = output_depths.squeeze(1) if output_depths != None else None
-                Y_depths = Y_depths.squeeze(1)
                 Y_segmentations = Y_segmentations.squeeze(1)
                 if i==0:
                     X_1 = X
-                    Y_depths_1 = Y_depths
                     Y_segmentations_1 = Y_segmentations
-                    output_depths_1 = output_depths
                     output_segmentations_1 = output_segmentations
                 # get loss
-                loss = self.loss_depth(output_depths, Y_depths) + self.loss_segmentation(output_segmentations, Y_segmentations)
+                loss = self.loss_segmentation(output_segmentations, Y_segmentations)
                 val_loss += loss.item()
                 pbar.set_postfix({'validation_loss': val_loss/(i+1)})
-            if self.config['wandb']['enable']:
-                wandb.log({"val_loss": val_loss/(i+1)})
-                self.img_logger(X_1, Y_depths_1, Y_segmentations_1, output_depths_1, output_segmentations_1)
+            # if self.config['wandb']['enable']:
+            #     wandb.log({"val_loss": val_loss/(i+1)})
+            #     self.img_logger(X_1, Y_depths_1, Y_segmentations_1, output_depths_1, output_segmentations_1)
         return val_loss/(i+1)
 
     def save_model(self):
