@@ -56,7 +56,7 @@ def get_splitted_dataset(config, split, input_folder_path, path_images, path_seg
     # exit(0)
 
     path_images = [os.path.join(input_folder_path, config['Dataset']['paths']['path_images'], im[:-4]+config['Dataset']['extensions']['ext_images']) for im in selected_files]
-    if config['General']['load_reference_flag'] == True:
+    if config['General']['load_reference'] == True:
         path_segmentation = [os.path.join(input_folder_path, config['Dataset']['paths']['path_segmentations'], im[:-4]+config['Dataset']['extensions']['ext_images']) for im in selected_files]
         return path_images, path_segmentation
     else:
@@ -202,3 +202,9 @@ def saveImages(output_segmentation, pred_entropy, filename,
     plt.axis('off')
     plt.savefig(os.path.join(path_dir_uncertainty_pred_entropy, os.path.basename(images)), 
         dpi=150, bbox_inches='tight', pad_inches=0.0)
+
+
+def boolean_string(s):
+    if s not in {'False', 'True'}:
+        raise ValueError('Not a valid boolean string')
+    return s == 'True'

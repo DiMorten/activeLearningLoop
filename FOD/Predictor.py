@@ -184,7 +184,7 @@ class Predictor(object):
                 output = softmax_segmentation.argmax(axis=1).astype(np.uint8)
 
                 output_values.append(output)
-                if self.config['General']['load_reference_flag'] == True:
+                if self.config['General']['load_reference'] == True:
                     reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
 
                 # ========= Apply softmax
@@ -219,7 +219,7 @@ class Predictor(object):
                     encoder_values.append(encoder_value)
         output_values = np.concatenate(output_values, axis=0)
         uncertainty_values = np.concatenate(uncertainty_values, axis=0)
-        if self.config['General']['load_reference_flag'] == True:
+        if self.config['General']['load_reference'] == True:
             reference_values = np.concatenate(reference_values, axis=0)
         if self.config['ActiveLearning']['spatial_buffer'] == True:
             buffer_mask_values = np.concatenate(buffer_mask_values, axis=0)
@@ -227,7 +227,7 @@ class Predictor(object):
             print("buffer_mask_values.shape", buffer_mask_values.shape)
 
         print(output_values.shape, uncertainty_values.shape)
-        if self.config['General']['load_reference_flag'] == True:
+        if self.config['General']['load_reference'] == True:
             print(reference_values.shape) 
         if getEncoder == True:
             encoder_values = np.concatenate(encoder_values, axis=0)
@@ -252,7 +252,7 @@ class Predictor(object):
             for i, (X, Y_segmentations) in enumerate(pbar):
                 # X, Y_segmentations = X.to(self.device), Y_depths.to(self.device), Y_segmentations.to(self.device)            
                 X = X.to(self.device)            
-                if self.config['General']['load_reference_flag'] == True:
+                if self.config['General']['load_reference'] == True:
                     Y_segmentations = Y_segmentations.to(self.device)
                 # ======= Predict
                 if isinstance(self.model, FocusOnDepth):
@@ -272,7 +272,7 @@ class Predictor(object):
                 output = softmax_segmentation.argmax(axis=1).astype(np.uint8)
 
                 output_values.append(output)
-                if self.config['General']['load_reference_flag'] == True:
+                if self.config['General']['load_reference'] == True:
                     reference_values.append(Y_segmentations.squeeze(1).detach().numpy())
 
                 # ========= Apply softmax
@@ -307,7 +307,7 @@ class Predictor(object):
                     encoder_values.append(encoder_value)
         output_values = np.concatenate(output_values, axis=0)
         uncertainty_values = np.concatenate(uncertainty_values, axis=0)
-        if self.config['General']['load_reference_flag'] == True:
+        if self.config['General']['load_reference'] == True:
             reference_values = np.concatenate(reference_values, axis=0)
         if self.config['ActiveLearning']['spatial_buffer'] == True:
             buffer_mask_values = np.concatenate(buffer_mask_values, axis=0)
@@ -315,7 +315,7 @@ class Predictor(object):
             print("buffer_mask_values.shape", buffer_mask_values.shape)
 
         print(output_values.shape, uncertainty_values.shape)
-        if self.config['General']['load_reference_flag'] == True:
+        if self.config['General']['load_reference'] == True:
             print(reference_values.shape) 
         if getEncoder == True:
             encoder_values = np.concatenate(encoder_values, axis=0)
@@ -551,15 +551,17 @@ class PredictorEntropyAL(Predictor):
         # print(input_images)
         # pdb.set_trace()
         super().__init__(config, input_images)
-        self.activeLearner = ActiveLearner(config)
+        
+        # self.activeLearner = ActiveLearner(config)
 
-        config_active_learning = copy.deepcopy(self.config)
-        config_active_learning['Dataset']['splits']['split_train'] = 0.
-        config_active_learning['Dataset']['splits']['split_val'] = 0.
-        config_active_learning['Dataset']['splits']['split_test'] = 1.
-
-        self.test_data = AutoFocusDataset(config_active_learning, 
-            self.input_folder_path, 'test')
+        config_test = copy.deepcopy(self.config)
+        config_test['Dataset']['splits']['split_train'] = 0.
+        config_test['Dataset']['splits']['split_val'] = 0.
+        config_test['Dataset']['splits']['split_test'] = 1.
+        
+        self.test_data = AutoFocusDataset(config_test, 
+            self.input_folder_path, 'test', 
+            use_reference=config_test['Inference']['get_metrics'])
         print(len(self.test_data.paths_images))
 
     def run(self):

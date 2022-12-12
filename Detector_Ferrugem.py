@@ -4,6 +4,7 @@ import os
 from FOD.Predictor import PredictorEntropyAL, PredictorEntropy
 from FOD.ActiveLearning import ActiveLearner
 from FOD.Trainer import Trainer
+from FOD.utils import boolean_string
 import time
 
 if __name__ == "__main__":
@@ -14,39 +15,67 @@ if __name__ == "__main__":
         allow_abbrev=True)
 
     parser.add_argument('-filename', type=str)
-    parser.add_argument('-load_reference_flag', type=str)
+    parser.add_argument('-get_metrics', 
+        default=False, type=boolean_string)
 
-    parser.add_argument('-train', type=bool, default=True)
-    parser.add_argument('-inference', type=bool, default=True)
-    parser.add_argument('-active_learning', type=bool, default=True)
-    
+    parser.add_argument('-t', '--train', default=False,
+        type=boolean_string)
+    parser.add_argument('-i', '--inference', default=False,
+        type=boolean_string)
+    parser.add_argument('-a', '--active_learning', 
+        default=False, type=boolean_string)
+
+    # Metodo de active learning
+    parser.add_argument('-active_learning_method', type=str, 
+        default="uncertainty")
+    parser.add_argument('-active_learning_diversity_method', 
+        type=str)
+
+    parser.add_argument('-random_percentage', type=int, default=0)
+    parser.add_argument('-k', type=int, default=100)
+    parser.add_argument('-beta', type=int, default=5)
+
+
     args = parser.parse_args()
     print(args)
     
     t0 = time.time()
 
-    with open('config.json', 'r') as f:
-        config = json.load(f)
-
-    if args.load_reference_flag is not None:
-        config['General']['load_reference_flag'] = args.load_reference_flag
 
     if os.path.exists(args.filename):
         print("Arquivo encontrado com sucesso")
 
 
         if args.train == True:
-            os.system("python train.py")
+            print("========== Starting train ...")
+            os.system("python train.py -f {}".format(
+                    args.filename
+            ))
+            print("========== ... finished train")
 
         if args.inference == True:
-            predictor = PredictorEntropyAL(config, args.filename)
-            predictor.run()
+            print("========== Starting inference ...")
+            print("A", args.get_metrics)
+            os.system("python predict_batch.py -f {} \
+                -get_metrics {}".format(
+                    args.filename, args.get_metrics
+            ))
+            print("========== ... finished inference")
 
         if args.active_learning == True:
-            predictor = PredictorEntropyAL(config, args.filename)
-            predictor.loadPredictionResults()
-            activeLearner = ActiveLearner(config)
-            activeLearner.run(predictor)
+            print("========== Starting active learning ...")
+            os.system("python run_active_learning.py -f {} \
+                -get_metrics {} \
+                -k {} -beta {} -active_learning_method {} \
+                -active_learning_diversity_method {} \
+                -random_percentage {}".format(
+                    args.filename, args.get_metrics, 
+                    args.k, 
+                    args.beta, args.active_learning_method,
+                    args.active_learning_diversity_method,
+                    args.random_percentage
+            ))
+            print("========== ... finished active learning")
 
         # faz oq tem q fazer com o cod do Jorge
         # 

@@ -22,7 +22,7 @@
         "model_type":"deeplab",
         "test_batch_size": 4,
         "exp_id": 0,
-        "load_reference_flag": false
+        "load_reference": false
     },
     "Dataset":{
         "paths":{
@@ -47,7 +47,7 @@
             "p_flip":0.5,
             "p_crop":0.3,
             "p_rot":0.2,
-            "resize_images": true
+            "resize_images": false
         },
         "classes":{
             "1": {
@@ -58,7 +58,7 @@
     },
     "Inference": {
         "get_metrics": false,
-        "save_images": false
+        "save_images": true
     },
     "ActiveLearning": {
         "dataset": "CorrosaoActiveLearningReduced",

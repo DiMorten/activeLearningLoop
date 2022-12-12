@@ -33,32 +33,33 @@ class AutoFocusDataset(Dataset):
             :- input_folder_path -: str
             :- split -: split ['train', 'val', 'test']
     """
-    def __init__(self, config, input_folder_path, split=None, use_reference=False):
+    def __init__(self, config, input_folder_path, split=None, use_reference=True):
         self.split = split
         self.config = config
+        self.use_reference = use_reference
 
         path_images = os.path.join(input_folder_path, config['Dataset']['paths']['path_images'])
         # path_depths = os.path.join(input_folder_path, config['Dataset']['paths']['path_depths'])
-        if config['General']['load_reference_flag'] == True:
+        if self.use_reference == True:
             path_segmentations = os.path.join(input_folder_path, config['Dataset']['paths']['path_segmentations'])
 
         self.paths_images = get_total_paths(path_images, config['Dataset']['extensions']['ext_images'])
         # self.paths_depths = get_total_paths(path_depths, config['Dataset']['extensions']['ext_depths'])
-        if config['General']['load_reference_flag'] == True:
+        if self.use_reference == True:
             self.paths_segmentations = get_total_paths(path_segmentations, config['Dataset']['extensions']['ext_segmentations'])
 
         assert (self.split in ['train', 'test', 'val']), "Invalid split!"
         print(len(self.paths_images))
         # pdb.set_trace()
         # assert (len(self.paths_images) == len(self.paths_depths)), "Different number of instances between the input and the depth maps"
-        if config['General']['load_reference_flag'] == True:
+        if self.use_reference == True:
             assert (len(self.paths_images) == len(self.paths_segmentations)), "Different number of instances between the input and the segmentation maps"
         assert (config['Dataset']['splits']['split_train']+config['Dataset']['splits']['split_test']+config['Dataset']['splits']['split_val'] == 1), "Invalid splits (sum must be equal to 1)"
         # check for segmentation
 
         # ic(input_folder_path, self.paths_images)
         # utility func for splitting
-        if config['General']['load_reference_flag'] == True:
+        if self.use_reference == True:
             self.paths_images, self.paths_segmentations = get_splitted_dataset(
                 config, self.split, input_folder_path, self.paths_images, path_segmentation = self.paths_segmentations)
         else:
@@ -89,14 +90,14 @@ class AutoFocusDataset(Dataset):
         # ic(Image.open(self.paths_depths[idx]).mode)
         # ic(Image.open(self.paths_segmentations[idx]).mode)
         # depth = self.transform_depth(Image.open(self.paths_depths[idx]))
-        if self.config['General']['load_reference_flag'] == True:
+        if self.use_reference == True:
             segmentation = self.transform_seg(Image.open(self.paths_segmentations[idx]))
         # imgorig = image.clone()
 
         if random.random() < self.p_flip:
             image = TF.hflip(image)
             # depth = TF.hflip(depth)
-            if self.config['General']['load_reference_flag'] == True:
+            if self.use_reference == True:
                 segmentation = TF.hflip(segmentation)
 
         if random.random() < self.p_crop:
@@ -106,11 +107,11 @@ class AutoFocusDataset(Dataset):
             top = int(random.random()*max_size)
             image = TF.crop(image, top, left, random_size, random_size)
             # depth = TF.crop(depth, top, left, random_size, random_size)
-            if self.config['General']['load_reference_flag'] == True:
+            if self.use_reference == True:
                 segmentation = TF.crop(segmentation, top, left, random_size, random_size)
             image = transforms.Resize((self.resize, self.resize))(image)
             # depth = transforms.Resize((self.resize, self.resize))(depth)
-            if self.config['General']['load_reference_flag'] == True:
+            if self.use_reference == True:
                 segmentation = transforms.Resize((self.resize, self.resize), interpolation=transforms.InterpolationMode.NEAREST)(segmentation)
 
         if random.random() < self.p_rot:
@@ -120,7 +121,7 @@ class AutoFocusDataset(Dataset):
             mask = TF.rotate(mask, random_angle, interpolation=transforms.InterpolationMode.BILINEAR)
             image = TF.rotate(image, random_angle, interpolation=transforms.InterpolationMode.BILINEAR)
             # depth = TF.rotate(depth, random_angle, interpolation=transforms.InterpolationMode.BILINEAR)
-            if self.config['General']['load_reference_flag'] == True:
+            if self.use_reference == True:
                 segmentation = TF.rotate(segmentation, random_angle, interpolation=transforms.InterpolationMode.NEAREST)
             #crop to remove black borders due to the rotation
             left = torch.argmax(mask[:,0,:]).item()
@@ -129,16 +130,16 @@ class AutoFocusDataset(Dataset):
             size = self.resize - 2*coin
             image = TF.crop(image, coin, coin, size, size)
             # depth = TF.crop(depth, coin, coin, size, size)
-            if self.config['General']['load_reference_flag'] == True:
+            if self.use_reference == True:
                 segmentation = TF.crop(segmentation, coin, coin, size, size)
             #Resize
             image = transforms.Resize((self.resize, self.resize))(image)
             #depth = transforms.Resize((self.resize, self.resize))(depth)
-            if self.config['General']['load_reference_flag'] == True:
+            if self.use_reference == True:
                 segmentation = transforms.Resize((self.resize, self.resize), interpolation=transforms.InterpolationMode.NEAREST)(segmentation)
         # show([imgorig, image, depth, segmentation])
         # exit(0)
-        if self.config['General']['load_reference_flag'] == True:
+        if self.use_reference == True:
             return image, segmentation
         else:
             return image, []
