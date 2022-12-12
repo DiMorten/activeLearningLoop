@@ -94,7 +94,7 @@ class Predictor(object):
 
         path_model = os.path.join(self.config['General']['path_model'], self.model.__class__.__name__ + 
             '_' + str(self.config['General']['exp_id']) + '.p')
-        ic(path_model)
+        print("path_model", path_model)
 
 
         self.model.load_state_dict(
@@ -380,16 +380,16 @@ class PredictorMCDropout(Predictor):
                     # pdb.set_trace()
                 softmax_segmentations = np.concatenate(softmax_segmentations, axis=0)
                 softmax_segmentations = np.expand_dims(softmax_segmentations, axis=-1)
-                ic(softmax_segmentations.shape)
+                print("softmax_segmentations.shape", softmax_segmentations.shape)
 
                 [pred_entropy, pred_var, MI, KL] = uncertainty.getUncertaintyMetrics(softmax_segmentations)
 
-                ic(pred_entropy.shape)
+                print("pred_entropy.shape", pred_entropy.shape)
 
                 output_segmentation = transforms.ToPILImage()(output_segmentation.argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
                 # output_depth = transforms.ToPILImage()(output_depth.float()).resize(original_size, resample=Image.BICUBIC)
 
-                ic(original_size)
+                print("original_size", original_size)
                 # pdb.set_trace()
                 pred_entropy = cv2.resize(pred_entropy, original_size, interpolation=cv2.INTER_LINEAR)
                 pred_var = cv2.resize(pred_var, original_size, interpolation=cv2.INTER_LINEAR)
@@ -469,15 +469,15 @@ class PredictorEntropy(Predictor):
                 output_segmentation = output_segmentation.squeeze(0)
 
                 softmax_segmentation = output_segmentation.cpu().detach().numpy()
-                ic(softmax_segmentation.shape)
+                print("softmax_segmentation.shape", softmax_segmentation.shape)
                 softmax_segmentation = softmax(softmax_segmentation, axis=0)[1] # get foreground class
-                ic(softmax_segmentation.shape)
+                print("softmax_segmentation.shape", softmax_segmentation.shape)
                 
                 pred_entropy = uncertainty.single_experiment_entropy(
                     np.expand_dims(softmax_segmentation, axis=-1)).astype(np.float32)
                 
 
-                ic(pred_entropy.shape)
+                print("pred_entropy.shape", pred_entropy.shape)
 
                 output_segmentation = transforms.ToPILImage()(output_segmentation.argmax(dim=0).float()).resize(original_size, resample=Image.NEAREST)
 

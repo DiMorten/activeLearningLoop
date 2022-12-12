@@ -90,7 +90,7 @@ def mutual_information(pred_probs):
 
     n = pred_probs.shape[0]
     K = pred_probs.shape[-1]
-    ic(n, K)
+    print("n, K", n, K)
 
     for i in range(n):
         for k in range(K):

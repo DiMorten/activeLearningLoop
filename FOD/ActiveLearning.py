@@ -167,7 +167,7 @@ class ActiveLearner():
         else:
             K = self.k * self.config['ActiveLearning']['beta']
 
-        ic(self.k, K)
+        print("self.k, K", self.k, K)
         # K = 20
         # self.k = 10
         if self.config['ActiveLearning']['spatial_buffer'] == False:
@@ -209,7 +209,7 @@ class ActiveLearner():
         sample_n_with_random_percentage = int(
             self.config['ActiveLearning']['k'] * self.config['ActiveLearning']['random_percentage'])
 
-        ic(sample_n_with_random_percentage)
+        print("sample_n_with_random_percentage", sample_n_with_random_percentage)
         recommendation_idxs_with_random_percentage = getRandomIdxs(dataset, 
             sample_n_with_random_percentage)
 
@@ -220,15 +220,20 @@ class ActiveLearner():
         np.save(self.recommendation_idxs_path, 
             self.recommendation_idxs)
 
+    def getSelectedImageNames(self, dataset):
+        self.selected_image_names = np.array(
+            [x.split("\\")[-1] for x in dataset.paths_images])[self.recommendation_idxs]
+
     def saveSelectedImageNames(self, dataset):
-        selected_image_names = np.array([x.split("\\")[-1] for x in dataset.paths_images])[self.recommendation_idxs]
+        self.getSelectedImageNames(dataset)
         print(
-            "sorted name IDs", selected_image_names)
+            "sorted name IDs", self.selected_image_names)
         #  convert array into dataframe
-        df = pd.DataFrame(selected_image_names)
+        df = pd.DataFrame(self.selected_image_names)
         
         # save the dataframe as a csv file
-        df.to_csv("selected_image_names.csv")
+        df.to_csv(self.config['General']['path_predicted_images'] + \
+            "/selected_image_names.csv")
 
 
     def run(self, predictor):
@@ -257,6 +262,7 @@ class ActiveLearner():
 
         self.saveRecommendationIdxs()
         self.saveSelectedImageNames(predictor.test_data)
+        self.saveSelectedImages(predictor.test_data)
 
         print("recommendation IDs", self.recommendation_idxs)
         

@@ -48,7 +48,8 @@ def get_splitted_dataset(config, split, input_folder_path, path_images, path_seg
     else:
         selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):]# [:100]
 
-    ic(os.path.join(input_folder_path, config['Dataset']['paths']['path_images']))
+    # print("os.path.join(input_folder_path, config['Dataset']['paths']['path_images'])", 
+    #     os.path.join(input_folder_path, config['Dataset']['paths']['path_images']))
     print('Train list', list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])])
     print('Val list', list_files[int(len(list_files)*config['Dataset']['splits']['split_train']):int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val'])])
     print('Test list', list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):])
