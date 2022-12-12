@@ -20,7 +20,7 @@
         "seed":0,
         "patch_size":16,
         "model_type":"deeplab",
-        "test_batch_size": 4,
+        "test_batch_size": 1,
         "exp_id": 0,
         "load_reference": false
     },
@@ -47,7 +47,7 @@
             "p_flip":0.5,
             "p_crop":0.3,
             "p_rot":0.2,
-            "resize_images": false
+            "resize_images": true
         },
         "classes":{
             "1": {
@@ -58,7 +58,7 @@
     },
     "Inference": {
         "get_metrics": false,
-        "save_images": true
+        "save_images": false
     },
     "ActiveLearning": {
         "dataset": "CorrosaoActiveLearningReduced",

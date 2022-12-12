@@ -25,7 +25,9 @@ np.random.seed(config['General']['seed'])
 list_data = config['Dataset']['paths']['list_datasets']
 list_data.append(config['ActiveLearning']['dataset'])
 
-recommendation_idxs_path = 'recommendation_idxs_' + str(config['General']['exp_id']) + '.npy'
+recommendation_idxs_path = config['General']['path_predicted_images'] + \
+    'inference/recommendation_idxs_' + \
+    str(config['General']['exp_id']) + '.npy'
 
 
 config_active_learning = copy.deepcopy(config)

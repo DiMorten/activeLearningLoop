@@ -208,3 +208,24 @@ def boolean_string(s):
     if s not in {'False', 'True'}:
         raise ValueError('Not a valid boolean string')
     return s == 'True'
+def add_margin(pil_img, padding, color):
+    (top, right, bottom, left) = padding
+    width, height = pil_img.size
+    new_width = width + right + left
+    new_height = height + top + bottom
+    result = Image.new(pil_img.mode, (new_width, new_height), color)
+    result.paste(pil_img, (left, top))
+    return result
+
+def pad_if_needed(im, im_size):
+    if im_size[0] % 16 != 0 or im_size[1] % 16 != 0:
+        padding = (0, im_size[0] % 16, im_size[1] % 16, 0)
+        im = add_margin(im, padding, (128, 128, 128))
+    else:
+        padding = None
+    return im, padding
+
+def unpad(im, padding):
+    if padding is not None:
+        im = im[:-padding[2], :-padding[1]]
+    return im

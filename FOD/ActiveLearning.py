@@ -149,6 +149,10 @@ class ActiveLearner():
     def __init__(self, config):
         self.config = config
         self.k = self.config['ActiveLearning']['k']
+        self.recommendation_idxs_path = self.config['General']['path_predicted_images'] + \
+            '/inference/recommendation_idxs_' + \
+            str(self.config['General']['exp_id']) + '.npy'
+
     def setTrainEncoderValues(self, train_encoder_values):
         self.train_encoder_values = train_encoder_values
 
@@ -212,7 +216,8 @@ class ActiveLearner():
         self.recommendation_idxs[-sample_n_with_random_percentage:] = recommendation_idxs_with_random_percentage
 
     def saveRecommendationIdxs(self):
-        np.save('recommendation_idxs_' + str(self.config['General']['exp_id']) + '.npy', 
+
+        np.save(self.recommendation_idxs_path, 
             self.recommendation_idxs)
 
     def saveSelectedImageNames(self, dataset):

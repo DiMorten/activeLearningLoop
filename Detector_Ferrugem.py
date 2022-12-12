@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-t', '--train', default=False,
         type=boolean_string)
-    parser.add_argument('-i', '--inference', default=False,
+    parser.add_argument('-i', '--inference', default=True,
         type=boolean_string)
     parser.add_argument('-a', '--active_learning', 
         default=False, type=boolean_string)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument('-active_learning_method', type=str, 
         default="uncertainty")
     parser.add_argument('-active_learning_diversity_method', 
-        type=str)
+        type=str) # "cluster", "distance_to_train", None
 
     parser.add_argument('-random_percentage', type=int, default=0)
     parser.add_argument('-k', type=int, default=100)
@@ -55,7 +55,6 @@ if __name__ == "__main__":
 
         if args.inference == True:
             print("========== Starting inference ...")
-            print("A", args.get_metrics)
             os.system("python predict_batch.py -f {} \
                 -get_metrics {}".format(
                     args.filename, args.get_metrics
