@@ -15,14 +15,14 @@ if __name__ == "__main__":
         allow_abbrev=True)
 
     parser.add_argument('-filename', type=str)
-    parser.add_argument('-get_metrics', type=boolean_string)
+    parser.add_argument('-get_metrics', type=boolean_string, default=False)
 
 
     parser.add_argument('-active_learning_method', type=str, 
-        default="uncertainty")
+        default="uncertainty", choices=["uncertainty", "random"])
     parser.add_argument('-active_learning_diversity_method', 
-        type=str)
-    parser.add_argument('-random_percentage', type=int, default=0)
+        type=str, default=None)
+    parser.add_argument('-random_percentage', type=float, default=0)
     parser.add_argument('-k', type=int, default=100)
     parser.add_argument('-beta', type=int, default=5)
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
         predictor = PredictorEntropyAL(config, args.filename)
         predictor.loadPredictionResults()
-        activeLearner = ActiveLearner(config)
+        activeLearner = ActiveLearner(config, args.filename)
         activeLearner.run(predictor)
 
         # faz oq tem q fazer com o cod do Jorge

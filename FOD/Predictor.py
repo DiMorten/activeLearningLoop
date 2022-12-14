@@ -285,7 +285,8 @@ class Predictor(object):
 
                 
                 softmax_segmentation = output_segmentations.cpu().detach().numpy()
-                softmax_segmentation = utils.unpad(softmax_segmentation, padding)
+                # print("softmax_segmentation.shape", softmax_segmentation.shape)
+                # softmax_segmentation = utils.unpad(softmax_segmentation, padding)
                 output = softmax_segmentation.argmax(axis=1).astype(np.uint8)
 
                 output_values.append(output)
@@ -485,7 +486,7 @@ class PredictorEntropy(Predictor):
 
                 path_dir_segmentation = os.path.join(self.output_dir, 'segmentations')
 
-                path_dir_uncertainty_pred_entropy = os.path.join(self.output_dir, 'uncertainty_pred_entropy_single')
+                path_dir_uncertainty_pred_entropy = os.path.join(self.output_dir, 'uncertainty')
 
                 create_dir(path_dir_segmentation)
                 output_segmentation.save(os.path.join(path_dir_segmentation, os.path.basename(images)))
@@ -505,7 +506,7 @@ def createSaveFolders(output_dir):
     path_dir_segmentation = os.path.join(output_dir, 'segmentations')
     path_dir_reference = os.path.join(output_dir, 'reference')
 
-    path_dir_uncertainty_pred_entropy = os.path.join(output_dir, 'uncertainty_pred_entropy_single')
+    path_dir_uncertainty_pred_entropy = os.path.join(output_dir, 'uncertainty')
 
     create_dir(path_dir_segmentation)
     create_dir(path_dir_reference)
@@ -581,7 +582,7 @@ class PredictorEntropyAL(Predictor):
         print(len(self.test_data.paths_images))
 
     def run(self):
-
+        t0 = time.time()
 
 
         # ================= Predict test data
@@ -603,6 +604,7 @@ class PredictorEntropyAL(Predictor):
             _, _, _, self.train_encoder_values = self.inferDataLoader(
                 train_dataloader, getEncoder=True)
 
+        print("Time before saving images", time.time() - t0)
         # =========== Save prediction results
         self.savePredictionResults()
 
@@ -618,7 +620,7 @@ class PredictorEntropyAL(Predictor):
     """
     def loadUncertainty(self):
         filenames = pathlib.Path(
-                self.config['General']['path_predicted_images'] + '/uncertainty_pred_entropy_single/*' + self.config['Dataset']['extensions']['ext_images'])
+                self.config['General']['path_predicted_images'] + '/uncertainty/*' + self.config['Dataset']['extensions']['ext_images'])
         ims = []
         for filename in filenames:
             im = np.array(Image.open(filename))
@@ -667,7 +669,7 @@ class PredictorEntropyAL(Predictor):
     def saveImages(self):
         if self.save_images == True:
             print("Starting to save images...")
-            path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy = createSaveFolders(
+            path_dir_segmentation, path_dir_reference, path_dir_uncertainty = createSaveFolders(
                     self.output_dir)
             for idx in range(len(self.output_values)):
 
@@ -678,7 +680,7 @@ class PredictorEntropyAL(Predictor):
                     self.uncertainty_values[idx], filename = filename, 
                     path_dir_segmentation = path_dir_segmentation,
                     path_dir_reference = path_dir_reference,
-                    path_dir_uncertainty_pred_entropy = path_dir_uncertainty_pred_entropy
+                    path_dir_uncertainty = path_dir_uncertainty
                     )
 
 

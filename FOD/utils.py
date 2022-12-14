@@ -186,7 +186,7 @@ def filterSamplesByIdxs(dataset, idxs):
 
 
 def saveImages(output_segmentation, pred_entropy, filename, 
-        path_dir_segmentation, path_dir_reference, path_dir_uncertainty_pred_entropy):
+        path_dir_segmentation, path_dir_reference, path_dir_uncertainty):
     # print(np.unique(output_segmentation))
 
     # print(np.unique(reference_value))
@@ -198,10 +198,10 @@ def saveImages(output_segmentation, pred_entropy, filename,
     # print(os.path.join(path_dir_segmentation), os.path.basename(images))
     cv2.imwrite(os.path.join(path_dir_segmentation, os.path.basename(images)), output_segmentation*255)
     
-    create_dir(path_dir_uncertainty_pred_entropy)
+    create_dir(path_dir_uncertainty)
     plt.imshow(pred_entropy, cmap = plt.cm.gray)
     plt.axis('off')
-    plt.savefig(os.path.join(path_dir_uncertainty_pred_entropy, os.path.basename(images)), 
+    plt.savefig(os.path.join(path_dir_uncertainty, os.path.basename(images)), 
         dpi=150, bbox_inches='tight', pad_inches=0.0)
 
 
@@ -220,7 +220,7 @@ def add_margin(pil_img, padding, color):
 
 def pad_if_needed(im, im_size):
     if im_size[0] % 16 != 0 or im_size[1] % 16 != 0:
-        padding = (0, im_size[0] % 16, im_size[1] % 16, 0)
+        padding = (0, 16 - im_size[0] % 16, 16 - im_size[1] % 16, 0)
         im = add_margin(im, padding, (128, 128, 128))
     else:
         padding = None

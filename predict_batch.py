@@ -15,11 +15,11 @@ if __name__ == "__main__":
         allow_abbrev=True)
 
     parser.add_argument('-filename', type=str)
-    # parser.add_argument('-load_reference',
-    #     default = False, type=boolean_string)
     parser.add_argument('-get_metrics', default=False,
         type=boolean_string)
-
+    parser.add_argument('-device', type=str)
+    parser.add_argument('-inference_resize', default=False, 
+        type=boolean_string)
     
     args = parser.parse_args()
     print(args)
@@ -29,9 +29,8 @@ if __name__ == "__main__":
 
     if args.get_metrics is not None:
         config['Inference']['get_metrics'] = args.get_metrics
+    config['General']['device'] = args.device
 
-    print("config['Inference']['get_metrics']", 
-        config['Inference']['get_metrics'])
 
     if os.path.exists(args.filename):
         print("Inferencia. Arquivo encontrado com sucesso")

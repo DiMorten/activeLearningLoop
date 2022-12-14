@@ -15,21 +15,29 @@ if __name__ == "__main__":
         allow_abbrev=True)
 
     parser.add_argument('-filename', type=str)
+    parser.add_argument('-train_filename', type=str)
     parser.add_argument('-get_metrics', 
         default=False, type=boolean_string)
 
-    parser.add_argument('-t', '--train', default=False,
+
+    parser.add_argument('-train', default=False,
         type=boolean_string)
-    parser.add_argument('-i', '--inference', default=True,
+    parser.add_argument('-inference', default=False,
         type=boolean_string)
-    parser.add_argument('-a', '--active_learning', 
+    parser.add_argument('-active_learning', 
         default=False, type=boolean_string)
 
-    # Metodo de active learning
+
+    # Inference parameters
+    parser.add_argument('-device', type=str, default='cuda')
+    parser.add_argument('-inference_resize', default=False, 
+        type=boolean_string)
+
+    # Active learning parameters
     parser.add_argument('-active_learning_method', type=str, 
         default="uncertainty")
     parser.add_argument('-active_learning_diversity_method', 
-        type=str) # "cluster", "distance_to_train", None
+        type=str, default=None) # "cluster", "distance_to_train", None
 
     parser.add_argument('-random_percentage', type=int, default=0)
     parser.add_argument('-k', type=int, default=100)
@@ -49,17 +57,21 @@ if __name__ == "__main__":
         if args.train == True:
             print("========== Starting train ...")
             os.system("python train.py -f {}".format(
-                    args.filename
+                    args.train_filename
             ))
             print("========== ... finished train")
+            print("Time: ", time.time() - t0)
 
         if args.inference == True:
             print("========== Starting inference ...")
             os.system("python predict_batch.py -f {} \
-                -get_metrics {}".format(
-                    args.filename, args.get_metrics
+                -get_metrics {} -device {}  \
+                -inference_resize {}".format(
+                    args.filename, args.get_metrics, 
+                    args.device, args.inference_resize
             ))
             print("========== ... finished inference")
+            print("Time: ", time.time() - t0)
 
         if args.active_learning == True:
             print("========== Starting active learning ...")
@@ -75,6 +87,7 @@ if __name__ == "__main__":
                     args.random_percentage
             ))
             print("========== ... finished active learning")
+            print("Time: ", time.time() - t0)
 
         # faz oq tem q fazer com o cod do Jorge
         # 

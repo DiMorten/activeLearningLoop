@@ -5,6 +5,9 @@ import pdb
 from scipy.spatial import distance
 from icecream import ic
 import pandas as pd
+import shutil
+import pathlib
+
 def getTopRecommendations(values, K=500, mode='uncertainty'):
     # values: shape (N, h, w)
 
@@ -146,8 +149,9 @@ def getRandomIdxs(dataset, n):
 
 
 class ActiveLearner():
-    def __init__(self, config):
+    def __init__(self, config, input_folder_path):
         self.config = config
+        self.input_folder_path = input_folder_path
         self.k = self.config['ActiveLearning']['k']
         self.recommendation_idxs_path = self.config['General']['path_predicted_images'] + \
             '/inference/recommendation_idxs_' + \
@@ -224,16 +228,17 @@ class ActiveLearner():
         self.selected_image_names = np.array(
             [x.split("\\")[-1] for x in dataset.paths_images])[self.recommendation_idxs]
 
-    def saveSelectedImageNames(self, dataset):
-        self.getSelectedImageNames(dataset)
+    def saveSelectedImageNames(self):
+        
         print(
             "sorted name IDs", self.selected_image_names)
         #  convert array into dataframe
         df = pd.DataFrame(self.selected_image_names)
-        
+        df = df.reset_index(drop=True)
         # save the dataframe as a csv file
         df.to_csv(self.config['General']['path_predicted_images'] + \
             "/selected_image_names.csv")
+
 
 
     def run(self, predictor):
@@ -261,9 +266,45 @@ class ActiveLearner():
             self.getRandomIdxsForPercentage(predictor.test_data)
 
         self.saveRecommendationIdxs()
-        self.saveSelectedImageNames(predictor.test_data)
-        self.saveSelectedImages(predictor.test_data)
+
+        self.getSelectedImageNames(predictor.test_data)
+        self.saveSelectedImageNames()
+        self.saveSelectedImages()
 
         print("recommendation IDs", self.recommendation_idxs)
         
         print("sorted mean uncertainty", self.sorted_values)
+    
+    def saveSelectedImages(self):
+        print(self.selected_image_names)
+        save_path = pathlib.Path(
+            self.config['General']['path_predicted_images'] + '/selected_images/imgs/')
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        for file in self.selected_image_names:
+            shutil.copyfile(self.input_folder_path + '/' + \
+                self.config['Dataset']['paths']['path_images'] + '/' + file, 
+                str(save_path / file))
+
+
+        save_path = pathlib.Path(
+            self.config['General']['path_predicted_images'] + '/selected_images/segmentations/')
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        for file in self.selected_image_names:
+
+            shutil.copyfile(self.input_folder_path + '/' + \
+                self.config['Dataset']['paths']['path_segmentations'] + '/' + file, 
+                str(save_path / file))
+
+
+        save_path = pathlib.Path(
+            self.config['General']['path_predicted_images'] + '/selected_images/uncertainty/')
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        for file in self.selected_image_names:
+
+            shutil.copyfile(
+                self.config['General']['path_predicted_images'] + \
+                    '/uncertainty/' + file, 
+                str(save_path / file))

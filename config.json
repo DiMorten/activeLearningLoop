@@ -30,7 +30,8 @@
             "list_datasets":["CorrosaoTrainTestReduced"],
             "path_images":"imgs",
             "path_segmentations":"labels",
-            "path_depths":"depths"
+            "path_depths":"depths",
+            "path_uncertainty":"uncertainty"
         },
         "extensions":{
             "ext_images":".png",
@@ -58,7 +59,7 @@
     },
     "Inference": {
         "get_metrics": false,
-        "save_images": false
+        "save_images": true
     },
     "ActiveLearning": {
         "dataset": "CorrosaoActiveLearningReduced",
