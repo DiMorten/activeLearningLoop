@@ -8,7 +8,7 @@ import pandas as pd
 import shutil
 import pathlib
 
-def getTopRecommendations(values, K=500, mode='uncertainty'):
+def getTopRecommendations(values, K=500):
     # values: shape (N, h, w)
 
     
@@ -175,10 +175,10 @@ class ActiveLearner():
         # K = 20
         # self.k = 10
         if self.config['ActiveLearning']['spatial_buffer'] == False:
-            self.sorted_values, self.recommendation_idxs = getTopRecommendations(uncertainty_values, K=K, mode='uncertainty')
+            self.sorted_values, self.recommendation_idxs = getTopRecommendations(uncertainty_values, K=K)
         else:
             self.sorted_values, self.recommendation_idxs = getTopRecommendationsBuffer(
-                uncertainty_values, self.buffer_mask_values, K=K, mode='uncertainty')
+                uncertainty_values, self.buffer_mask_values, K=K)
 
         print("sorted_values.shape", self.sorted_values.shape)
         
@@ -225,19 +225,22 @@ class ActiveLearner():
             self.recommendation_idxs)
 
     def getSelectedImageNames(self, dataset):
-        self.selected_image_names = np.array(
+        self.query_image_names = np.array(
             [x.split("\\")[-1] for x in dataset.paths_images])[self.recommendation_idxs]
 
     def saveSelectedImageNames(self):
         
         print(
-            "sorted name IDs", self.selected_image_names)
+            "sorted name IDs", self.query_image_names)
         #  convert array into dataframe
-        df = pd.DataFrame(self.selected_image_names)
+        df = pd.DataFrame(self.query_image_names)
         df = df.reset_index(drop=True)
         # save the dataframe as a csv file
-        df.to_csv(self.config['General']['path_predicted_images'] + \
-            "/selected_image_names.csv")
+        path = pathlib.Path(
+            self.config['General']['path_predicted_images'] + \
+                '/active_learning/')
+        path.mkdir(parents=True, exist_ok=True)
+        df.to_csv(str(path / "query_image_names.csv"))
 
 
 
@@ -276,22 +279,22 @@ class ActiveLearner():
         print("sorted mean uncertainty", self.sorted_values)
     
     def saveSelectedImages(self):
-        print(self.selected_image_names)
+        print(self.query_image_names)
         save_path = pathlib.Path(
-            self.config['General']['path_predicted_images'] + '/selected_images/imgs/')
+            self.config['General']['path_predicted_images'] + '/active_learning/query_images/imgs/')
         save_path.mkdir(parents=True, exist_ok=True)
 
-        for file in self.selected_image_names:
+        for file in self.query_image_names:
             shutil.copyfile(self.input_folder_path + '/' + \
                 self.config['Dataset']['paths']['path_images'] + '/' + file, 
                 str(save_path / file))
 
 
         save_path = pathlib.Path(
-            self.config['General']['path_predicted_images'] + '/selected_images/segmentations/')
+            self.config['General']['path_predicted_images'] + '/active_learning/query_images/segmentations/')
         save_path.mkdir(parents=True, exist_ok=True)
 
-        for file in self.selected_image_names:
+        for file in self.query_image_names:
 
             shutil.copyfile(self.input_folder_path + '/' + \
                 self.config['Dataset']['paths']['path_segmentations'] + '/' + file, 
@@ -299,10 +302,10 @@ class ActiveLearner():
 
 
         save_path = pathlib.Path(
-            self.config['General']['path_predicted_images'] + '/selected_images/uncertainty/')
+            self.config['General']['path_predicted_images'] + '/active_learning/query_images/uncertainty/')
         save_path.mkdir(parents=True, exist_ok=True)
 
-        for file in self.selected_image_names:
+        for file in self.query_image_names:
 
             shutil.copyfile(
                 self.config['General']['path_predicted_images'] + \

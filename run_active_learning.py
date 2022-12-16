@@ -18,8 +18,7 @@ if __name__ == "__main__":
     parser.add_argument('-get_metrics', type=boolean_string, default=False)
 
 
-    parser.add_argument('-active_learning_method', type=str, 
-        default="uncertainty", choices=["uncertainty", "random"])
+
     parser.add_argument('-active_learning_diversity_method', 
         type=str, default=None)
     parser.add_argument('-random_percentage', type=float, default=0)
@@ -34,7 +33,7 @@ if __name__ == "__main__":
 
     config['General']['get_metrics'] = args.get_metrics
 
-    config['General']['active_learning_method'] = args.active_learning_method
+
     config['General']['active_learning_diversity_method'] = args.active_learning_diversity_method
     config['General']['random_percentage'] = args.random_percentage
     config['General']['k'] = args.k

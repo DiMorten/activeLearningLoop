@@ -1,9 +1,6 @@
 import json
 import argparse
 import os
-from FOD.Predictor import PredictorEntropyAL, PredictorEntropy
-from FOD.ActiveLearning import ActiveLearner
-from FOD.Trainer import Trainer
 from FOD.utils import boolean_string
 import time
 
@@ -34,8 +31,7 @@ if __name__ == "__main__":
         type=boolean_string)
 
     # Active learning parameters
-    parser.add_argument('-active_learning_method', type=str, 
-        default="uncertainty")
+
     parser.add_argument('-active_learning_diversity_method', 
         type=str, default=None) # "cluster", "distance_to_train", None
 
@@ -77,12 +73,12 @@ if __name__ == "__main__":
             print("========== Starting active learning ...")
             os.system("python run_active_learning.py -f {} \
                 -get_metrics {} \
-                -k {} -beta {} -active_learning_method {} \
+                -k {} -beta {} \
                 -active_learning_diversity_method {} \
                 -random_percentage {}".format(
                     args.filename, args.get_metrics, 
                     args.k, 
-                    args.beta, args.active_learning_method,
+                    args.beta,
                     args.active_learning_diversity_method,
                     args.random_percentage
             ))
