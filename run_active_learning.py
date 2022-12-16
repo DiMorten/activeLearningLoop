@@ -1,12 +1,12 @@
 import json
 import argparse
 import os
-from FOD.Predictor import PredictorEntropyAL, PredictorEntropy
+from FOD.Predictor import PredictorEntropyAL # , PredictorEntropy
 from FOD.ActiveLearning import ActiveLearner
 from FOD.Trainer import Trainer
 from FOD.utils import boolean_string
 import time
-
+import pdb
 if __name__ == "__main__":
     app_desc = 'CLI de teste para o projeto Hilai360.\nDetector_Ferrugem.py utiliza de técnicas de IA avancadas para detectar e indicar sinais de corrosão em imagens providas pelo usuario'
     parser = argparse.ArgumentParser(
@@ -34,15 +34,16 @@ if __name__ == "__main__":
     config['General']['get_metrics'] = args.get_metrics
 
 
-    config['General']['active_learning_diversity_method'] = args.active_learning_diversity_method
-    config['General']['random_percentage'] = args.random_percentage
-    config['General']['k'] = args.k
-    config['General']['beta'] = args.beta
+    config['ActiveLearning']['diversity_method'] = args.active_learning_diversity_method
+    config['ActiveLearning']['random_percentage'] = args.random_percentage
+    config['ActiveLearning']['k'] = args.k
+    config['ActiveLearning']['beta'] = args.beta
 
-
+    # pdb.set_trace()
     if os.path.exists(args.filename):
         print("Arquivo encontrado com sucesso")
-
+        print(args.filename)
+        # pdb.set_trace()
         predictor = PredictorEntropyAL(config, args.filename)
         predictor.loadPredictionResults()
         activeLearner = ActiveLearner(config, args.filename)

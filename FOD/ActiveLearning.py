@@ -7,6 +7,7 @@ from icecream import ic
 import pandas as pd
 import shutil
 import pathlib
+from glob import glob
 
 def getTopRecommendations(values, K=500):
     # values: shape (N, h, w)
@@ -123,7 +124,12 @@ def getRepresentativeSamplesFromDistance(values, recommendation_idxs, train_valu
         values_selected_mask[selected_sample_idx] = True
         # values.pop(selected_sample_idx)
         # distances_to_train.pop(selected_sample_idx)
-
+        '''
+        distances_to_previously_selected_sample = getDistancesToValue(
+            values,
+            selected_sample_idx
+        )
+        '''
         for idx, value in enumerate(values):
             # ic(distances_to_train[idx])
             # ic(selected_sample)
@@ -152,6 +158,9 @@ class ActiveLearner():
     def __init__(self, config, input_folder_path):
         self.config = config
         self.input_folder_path = input_folder_path
+        ext = config['Dataset']['extensions']['ext_images']
+        self.input_images = glob(input_folder_path + '/imgs/*' + ext)
+
         self.k = self.config['ActiveLearning']['k']
         self.recommendation_idxs_path = self.config['General']['path_predicted_images'] + \
             '/inference/recommendation_idxs_' + \
@@ -166,12 +175,13 @@ class ActiveLearner():
     def getTopRecommendations(self, uncertainty_values, encoder_values, train_encoder_values = None):
 
         
-        if self.config['ActiveLearning']['diversity_method'] == False:        
+        if self.config['ActiveLearning']['diversity_method'] == "None":        
             K = self.k
         else:
             K = self.k * self.config['ActiveLearning']['beta']
 
         print("self.k, K", self.k, K)
+        pdb.set_trace()
         # K = 20
         # self.k = 10
         if self.config['ActiveLearning']['spatial_buffer'] == False:
@@ -259,7 +269,7 @@ class ActiveLearner():
             self.setTrainEncoderValues(self.train_encoder_values)
 
         if self.config['ActiveLearning']['method'] != 'random':
-            if self.config['ActiveLearning']['diversity_method'] != False:
+            if self.config['ActiveLearning']['diversity_method'] != "None":
                 self.getTopRecommendations(predictor.uncertainty_values, predictor.encoder_values)
             else:
                 self.getTopRecommendations(predictor.uncertainty_values, None)
@@ -295,9 +305,10 @@ class ActiveLearner():
         save_path.mkdir(parents=True, exist_ok=True)
 
         for file in self.query_image_names:
-
-            shutil.copyfile(self.input_folder_path + '/' + \
-                self.config['Dataset']['paths']['path_segmentations'] + '/' + file, 
+            # print("from", )
+            shutil.copyfile(
+                self.config['General']['path_predicted_images'] + \
+                    '/segmentations/' + file, 
                 str(save_path / file))
 
 

@@ -1,4 +1,4 @@
-name: torch
+name: torch2
 channels:
   - pytorch
   - conda-forge

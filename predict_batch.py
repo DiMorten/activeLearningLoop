@@ -1,7 +1,7 @@
 import json
 import argparse
 import os
-from FOD.Predictor import PredictorEntropyAL, PredictorEntropy
+from FOD.Predictor import PredictorEntropyAL # , PredictorEntropy
 from FOD.ActiveLearning import ActiveLearner
 from FOD.Trainer import Trainer
 from FOD.utils import boolean_string
@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     if os.path.exists(args.filename):
         print("Inferencia. Arquivo encontrado com sucesso")
-
+        
 
         predictor = PredictorEntropyAL(config, args.filename)
         predictor.run()
