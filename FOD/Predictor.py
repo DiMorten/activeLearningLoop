@@ -36,6 +36,7 @@ import pathlib
 from FOD.dataset import AutoFocusDataset
 from torch.utils.data import DataLoader, ConcatDataset
 from tqdm import tqdm
+from natsort import natsorted
 
 def enable_dropout(model):
     """ Function to enable the dropout layers during test-time """
@@ -271,6 +272,7 @@ class PredictorEntropyAL(Predictor):
         self.input_folder_path = input_folder_path
         ext = config['Dataset']['extensions']['ext_images']
         input_images = glob(input_folder_path + '/imgs/*' + ext)
+        
         # print(input_images)
         # pdb.set_trace()
         super().__init__(config, input_images)

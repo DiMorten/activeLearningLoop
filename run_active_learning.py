@@ -25,6 +25,8 @@ if __name__ == "__main__":
     parser.add_argument('-k', type=int, default=100)
     parser.add_argument('-beta', type=int, default=5)
 
+    parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
+
     args = parser.parse_args()
     print(args)
 
@@ -38,6 +40,7 @@ if __name__ == "__main__":
     config['ActiveLearning']['random_percentage'] = args.random_percentage
     config['ActiveLearning']['k'] = args.k
     config['ActiveLearning']['beta'] = args.beta
+    config['ActiveLearning']['cubemap_keyword'] = args.cubemap_keyword
 
     # pdb.set_trace()
     if os.path.exists(args.filename):

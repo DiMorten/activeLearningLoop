@@ -39,6 +39,7 @@ if __name__ == "__main__":
     parser.add_argument('-k', type=int, default=100)
     parser.add_argument('-beta', type=int, default=5)
 
+    parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 
     args = parser.parse_args()
     print(args)
@@ -75,12 +76,14 @@ if __name__ == "__main__":
                 -get_metrics {} \
                 -k {} -beta {} \
                 -active_learning_diversity_method {} \
-                -random_percentage {}".format(
+                -random_percentage {} \
+                -cubemap_keyword {}".format(
                     args.filename, args.get_metrics, 
                     args.k, 
                     args.beta,
                     args.active_learning_diversity_method,
-                    args.random_percentage
+                    args.random_percentage,
+                    args.cubemap_keyword
             ))
             print("========== ... finished active learning")
             print("Time: ", time.time() - t0)

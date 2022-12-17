@@ -8,30 +8,24 @@ import pandas as pd
 import shutil
 import pathlib
 from glob import glob
+from FOD.Cubemap import CubemapHandler
+from natsort import natsorted
 
-def getTopRecommendations(values, K=500):
-    # values: shape (N, h, w)
-
-    
+def getUncertaintyMean(values):
     mean_values = np.mean(values, axis=(1, 2))
     print("mean_values", mean_values.shape)
-    
-    sorted_idxs = np.argsort(mean_values, axis=0)
-    sorted_values = np.sort(mean_values, axis=0)
+    return mean_values
 
-    recommendation_idxs = np.flip(sorted_idxs)[:K]
-    return np.flip(sorted_values)[:K], recommendation_idxs
-
-
-def getTopRecommendationsBuffer(values, buffer_mask_values, K=500, mode='uncertainty'):
-    # values: shape (N, h, w)
-
+def getUncertaintyMeanBuffer(values, buffer_mask_values):
     print(buffer_mask_values.shape)
     # pdb.set_trace()
     values = np.ma.array(values, mask = buffer_mask_values)
     mean_values = np.ma.mean(values, axis=(1, 2))
     print("mean_values", mean_values.shape)
-    
+
+def getTopRecommendations(mean_values, K=500):
+    # values: shape (N, h, w)
+
     sorted_idxs = np.argsort(mean_values, axis=0)
     sorted_values = np.sort(mean_values, axis=0)
 
@@ -146,8 +140,8 @@ def getRepresentativeSamplesFromDistance(values, recommendation_idxs, train_valu
 def getRepresentativeAndUncertain(values, recommendation_idxs, representative_idxs):
     return values[recommendation_idxs][representative_idxs] # enters N=100, returns k=10
 
-def getRandomIdxs(dataset, n):
-    idxs = np.arange(len(dataset.paths_images))
+def getRandomIdxs(len_vector, n):
+    idxs = np.arange(len_vector)
     np.random.shuffle(idxs)
     idxs = idxs[:n]
     
@@ -158,8 +152,10 @@ class ActiveLearner():
     def __init__(self, config, input_folder_path):
         self.config = config
         self.input_folder_path = input_folder_path
+        self.cubemapHandler = CubemapHandler(config['Cubemap']['keyword'])
         ext = config['Dataset']['extensions']['ext_images']
         self.input_images = glob(input_folder_path + '/imgs/*' + ext)
+        # self.input_images = natsorted(self.input_images)
 
         self.k = self.config['ActiveLearning']['k']
         self.recommendation_idxs_path = self.config['General']['path_predicted_images'] + \
@@ -172,7 +168,7 @@ class ActiveLearner():
     def setBufferMaskValues(self, buffer_mask_values):
         self.buffer_mask_values = buffer_mask_values
 
-    def getTopRecommendations(self, uncertainty_values, encoder_values, train_encoder_values = None):
+    def getTopRecommendations(self, uncertainty_values_mean, encoder_values, train_encoder_values = None):
 
         
         if self.config['ActiveLearning']['diversity_method'] == "None":        
@@ -181,15 +177,17 @@ class ActiveLearner():
             K = self.k * self.config['ActiveLearning']['beta']
 
         print("self.k, K", self.k, K)
-        pdb.set_trace()
+        # pdb.set_trace()
         # K = 20
         # self.k = 10
-        if self.config['ActiveLearning']['spatial_buffer'] == False:
-            self.sorted_values, self.recommendation_idxs = getTopRecommendations(uncertainty_values, K=K)
-        else:
-            self.sorted_values, self.recommendation_idxs = getTopRecommendationsBuffer(
-                uncertainty_values, self.buffer_mask_values, K=K)
+        # uncertainty_values_mean = self.getUncertaintyMean(uncertainty_values)
 
+        # pdb.set_trace()
+        self.sorted_values, self.recommendation_idxs = getTopRecommendations(
+            uncertainty_values_mean, K=K)
+
+        # ic(self.recommendation_idxs)
+        # pdb.set_trace()
         print("sorted_values.shape", self.sorted_values.shape)
         
         # print("sorted name IDs", np.array([x.split("\\")[-1] for x in test_data.paths_images])[self.recommendation_idxs])
@@ -213,18 +211,19 @@ class ActiveLearner():
                 
             self.sorted_values = self.sorted_values[representative_idxs]
         
-
+    '''
     def getRandomIdxs(self, dataset, n):
         self.recommendation_idxs = getRandomIdxs(dataset, n)
         
         # return idxs
-
-    def getRandomIdxsForPercentage(self, dataset):
+    '''
+    def getRandomIdxsForPercentage(self, len_vector):
         sample_n_with_random_percentage = int(
             self.config['ActiveLearning']['k'] * self.config['ActiveLearning']['random_percentage'])
 
         print("sample_n_with_random_percentage", sample_n_with_random_percentage)
-        recommendation_idxs_with_random_percentage = getRandomIdxs(dataset, 
+
+        recommendation_idxs_with_random_percentage = getRandomIdxs(len_vector, 
             sample_n_with_random_percentage)
 
         self.recommendation_idxs[-sample_n_with_random_percentage:] = recommendation_idxs_with_random_percentage
@@ -234,9 +233,9 @@ class ActiveLearner():
         np.save(self.recommendation_idxs_path, 
             self.recommendation_idxs)
 
-    def getSelectedImageNames(self, dataset):
+    def getSelectedImageNames(self, paths_images):
         self.query_image_names = np.array(
-            [x.split("\\")[-1] for x in dataset.paths_images])[self.recommendation_idxs]
+            [x.split("\\")[-1] for x in paths_images])[self.recommendation_idxs]
 
     def saveSelectedImageNames(self):
         
@@ -253,72 +252,105 @@ class ActiveLearner():
         df.to_csv(str(path / "query_image_names.csv"))
 
 
+    def getFilenamesFromPaths(self, paths):
+        return [x.split('\\')[-1] for x in paths]
 
     def run(self, predictor):
 
-        if self.config['ActiveLearning']['method'] == 'random':
-            self.getRandomIdxs(predictor.test_data, 
-                self.config['ActiveLearning']['k'])
-            ic(self.config['ActiveLearning']['method'], len(self.recommendation_idxs))
-            
-            # self.saveRecommendationIdxs()
-            # sys.exit(0)
+        # pdb.set_trace()
+        filenames = self.getFilenamesFromPaths(
+            predictor.test_data.paths_images)
+        # ic(filenames)
+        self.cubemapHandler.findCubemapFiles(filenames)
 
+        # =========== Get image mean for uncertainty values
+
+        if self.config['ActiveLearning']['spatial_buffer'] == False:
+            predictor.uncertainty_values_mean = getUncertaintyMean(
+                predictor.uncertainty_values)
+        else:
+            predictor.uncertainty_values_mean = getUncertaintyMeanBuffer(
+                predictor.uncertainty_values, self.buffer_mask_values)
+
+        # =========== Treat cubemap samples as single 360 image
+        
+        predictor.uncertainty_values_mean, _ = self.cubemapHandler.reduceArray(
+            predictor.uncertainty_values_mean)
+        predictor.uncertainty_values, _ = self.cubemapHandler.reduceArray(
+            predictor.uncertainty_values)
+        predictor.encoder_values, _ = self.cubemapHandler.reduceArray(
+            predictor.encoder_values)
+        predictor.test_data.paths_images_not_reduced = predictor.test_data.paths_images.copy()
+        predictor.test_data.paths_images = list(
+            self.cubemapHandler.reduceFilenames(
+                np.array(predictor.test_data.paths_images)))
+
+        # self.len_vector = len(predictor.test_data.paths_images)
+        
+        self.len_vector = predictor.uncertainty_values_mean.shape[0]
+        
+        # self.cubemapHandler.reduceArray(
+        #     predictor.uncertainty_values)
 
         if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
             self.setTrainEncoderValues(self.train_encoder_values)
 
         if self.config['ActiveLearning']['method'] != 'random':
             if self.config['ActiveLearning']['diversity_method'] != "None":
-                self.getTopRecommendations(predictor.uncertainty_values, predictor.encoder_values)
+                self.getTopRecommendations(predictor.uncertainty_values_mean, predictor.encoder_values)
             else:
-                self.getTopRecommendations(predictor.uncertainty_values, None)
+                self.getTopRecommendations(predictor.uncertainty_values_mean, None)
 
 
         if self.config['ActiveLearning']['random_percentage'] > 0:
-            self.getRandomIdxsForPercentage(predictor.test_data)
+            self.getRandomIdxsForPercentage(self.len_vector)
 
         self.saveRecommendationIdxs()
 
-        self.getSelectedImageNames(predictor.test_data)
+        self.getSelectedImageNames(predictor.test_data.paths_images)
+        # pdb.set_trace()
         self.saveSelectedImageNames()
         self.saveSelectedImages()
+        self.saveSelectedImagesIfSameCubemap(predictor.test_data.paths_images_not_reduced)
 
         print("recommendation IDs", self.recommendation_idxs)
         
         print("sorted mean uncertainty", self.sorted_values)
     
+    def copy_files_to_folder(self, input_path, output_path):
+        save_path = pathlib.Path(
+            output_path)
+        save_path.mkdir(parents=True, exist_ok=True)
+
+        for file in self.query_image_names:
+            shutil.copyfile(input_path + file, 
+                str(save_path / file))
+
     def saveSelectedImages(self):
         print(self.query_image_names)
-        save_path = pathlib.Path(
-            self.config['General']['path_predicted_images'] + '/active_learning/query_images/imgs/')
-        save_path.mkdir(parents=True, exist_ok=True)
 
-        for file in self.query_image_names:
-            shutil.copyfile(self.input_folder_path + '/' + \
-                self.config['Dataset']['paths']['path_images'] + '/' + file, 
-                str(save_path / file))
+        self.copy_files_to_folder(
+            input_path = self.input_folder_path + '/' + \
+                self.config['Dataset']['paths']['path_images'] + '/',
+            output_path = self.config['General']['path_predicted_images'] + '/active_learning/query_images/imgs/',
+            )
 
+        self.copy_files_to_folder(
+            input_path = self.config['General']['path_predicted_images'] + \
+                    '/segmentations/',
+            output_path = self.config['General']['path_predicted_images'] + '/active_learning/query_images/segmentations/',
+            )
 
-        save_path = pathlib.Path(
-            self.config['General']['path_predicted_images'] + '/active_learning/query_images/segmentations/')
-        save_path.mkdir(parents=True, exist_ok=True)
+        self.copy_files_to_folder(
+            input_path = self.config['General']['path_predicted_images'] + \
+                    '/uncertainty/',
+            output_path = self.config['General']['path_predicted_images'] + '/active_learning/query_images/uncertainty/',
+            )
 
-        for file in self.query_image_names:
-            # print("from", )
-            shutil.copyfile(
-                self.config['General']['path_predicted_images'] + \
-                    '/segmentations/' + file, 
-                str(save_path / file))
+    def saveSelectedImagesIfSameCubemap(self, paths_images_not_reduced):
+        self.cubemapHandler.getCubemapFilenamesFromSingleFaceNames(
+            paths_images_not_reduced,
+            self.query_image_names
+        )
+        
 
-
-        save_path = pathlib.Path(
-            self.config['General']['path_predicted_images'] + '/active_learning/query_images/uncertainty/')
-        save_path.mkdir(parents=True, exist_ok=True)
-
-        for file in self.query_image_names:
-
-            shutil.copyfile(
-                self.config['General']['path_predicted_images'] + \
-                    '/uncertainty/' + file, 
-                str(save_path / file))

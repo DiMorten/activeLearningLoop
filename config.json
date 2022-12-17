@@ -72,6 +72,9 @@
         "beta": 5,
         "random_percentage": 0
     },
+    "Cubemap": {
+        "keyword": "cubemap"
+    },
     "wandb":{
         "enable":false,
         "username":"younesbelkada",
