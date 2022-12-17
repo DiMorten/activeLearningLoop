@@ -13,3 +13,4 @@ models/FocusOnDepth.p
 *.zip
 *.p
 *.npy
+*.csv

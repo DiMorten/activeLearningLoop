@@ -64,20 +64,22 @@ class CubemapHandler():
     def getCubemapFilenamesFromSingleFaceNames(self,
         paths_images_not_reduced,
         query_image_names):
+
+        paths_images_not_reduced = [x.split('\\')[-1] for x in paths_images_not_reduced]
+
         query_image_names_not_reduced = []
         for filename in query_image_names:
-            # print(filename)
+            print(filename)
             if self.checkCubemapFace(filename):
                 filename_ID = self.getFilenameID(filename)
                 # print(filename_ID)
                 cubemap_filenames = [i for i in paths_images_not_reduced if filename_ID in i]
                 # print(cubemap_filenames)
                 query_image_names_not_reduced.extend(cubemap_filenames)
-            else:
-                query_image_names_not_reduced.extend(filename)
+            # else:
+            #     query_image_names_not_reduced.extend(filename)
         print(len(query_image_names_not_reduced))
-        # pdb.set_trace()
-        query_image_names_not_reduced = [x.split('\\')[-1] for x in query_image_names_not_reduced]
+
         return query_image_names_not_reduced
 
     # def findUniqueIdxsInCubemapFiles(self):

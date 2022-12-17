@@ -249,7 +249,8 @@ class ActiveLearner():
             self.config['General']['path_predicted_images'] + \
                 '/active_learning/')
         path.mkdir(parents=True, exist_ok=True)
-        df.to_csv(str(path / "query_image_names.csv"))
+        df.to_csv(str(path / "query_image_names.csv"),
+            index=False, header=False)
 
 
     def getFilenamesFromPaths(self, paths):
@@ -312,11 +313,16 @@ class ActiveLearner():
 
         # self.saveSelectedImages(self.query_image_names)
 
-
+        # self.query_image_names = 
+        ic(self.query_image_names)
         query_image_names_not_reduced = self.cubemapHandler.getCubemapFilenamesFromSingleFaceNames(
             predictor.test_data.paths_images_not_reduced,
             self.query_image_names
         )
+        # ic(len(self.query_image_names))
+        
+        # ic(len(query_image_names_not_reduced))
+
         self.saveSelectedImageNames(query_image_names_not_reduced)
 
         self.saveSelectedImages(query_image_names_not_reduced)
