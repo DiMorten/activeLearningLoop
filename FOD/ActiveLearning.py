@@ -237,12 +237,12 @@ class ActiveLearner():
         self.query_image_names = np.array(
             [x.split("\\")[-1] for x in paths_images])[self.recommendation_idxs]
 
-    def saveSelectedImageNames(self):
+    def saveSelectedImageNames(self, query_image_names):
         
         print(
-            "sorted name IDs", self.query_image_names)
+            "sorted name IDs", query_image_names)
         #  convert array into dataframe
-        df = pd.DataFrame(self.query_image_names)
+        df = pd.DataFrame(query_image_names)
         df = df.reset_index(drop=True)
         # save the dataframe as a csv file
         path = pathlib.Path(
@@ -309,48 +309,56 @@ class ActiveLearner():
 
         self.getSelectedImageNames(predictor.test_data.paths_images)
         # pdb.set_trace()
-        self.saveSelectedImageNames()
-        self.saveSelectedImages()
-        self.saveSelectedImagesIfSameCubemap(predictor.test_data.paths_images_not_reduced)
+
+        # self.saveSelectedImages(self.query_image_names)
+
+
+        query_image_names_not_reduced = self.cubemapHandler.getCubemapFilenamesFromSingleFaceNames(
+            predictor.test_data.paths_images_not_reduced,
+            self.query_image_names
+        )
+        self.saveSelectedImageNames(query_image_names_not_reduced)
+
+        self.saveSelectedImages(query_image_names_not_reduced)
+
+
 
         print("recommendation IDs", self.recommendation_idxs)
         
         print("sorted mean uncertainty", self.sorted_values)
     
-    def copy_files_to_folder(self, input_path, output_path):
+    def copy_files_to_folder(self, input_path, output_path,
+        query_image_names):
         save_path = pathlib.Path(
             output_path)
         save_path.mkdir(parents=True, exist_ok=True)
 
-        for file in self.query_image_names:
+        for file in query_image_names:
             shutil.copyfile(input_path + file, 
                 str(save_path / file))
 
-    def saveSelectedImages(self):
-        print(self.query_image_names)
+    def saveSelectedImages(self, query_image_names):
+        
+        print(query_image_names)
 
         self.copy_files_to_folder(
             input_path = self.input_folder_path + '/' + \
                 self.config['Dataset']['paths']['path_images'] + '/',
             output_path = self.config['General']['path_predicted_images'] + '/active_learning/query_images/imgs/',
+            query_image_names = query_image_names
             )
 
         self.copy_files_to_folder(
             input_path = self.config['General']['path_predicted_images'] + \
                     '/segmentations/',
             output_path = self.config['General']['path_predicted_images'] + '/active_learning/query_images/segmentations/',
+            query_image_names = query_image_names            
             )
 
         self.copy_files_to_folder(
             input_path = self.config['General']['path_predicted_images'] + \
                     '/uncertainty/',
             output_path = self.config['General']['path_predicted_images'] + '/active_learning/query_images/uncertainty/',
+            query_image_names = query_image_names
             )
-
-    def saveSelectedImagesIfSameCubemap(self, paths_images_not_reduced):
-        self.cubemapHandler.getCubemapFilenamesFromSingleFaceNames(
-            paths_images_not_reduced,
-            self.query_image_names
-        )
-        
 

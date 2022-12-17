@@ -5,23 +5,27 @@ import numpy as np
 class CubemapHandler():
     def __init__(self, keyword):
         self.keyword = keyword
-        
+    def checkCubemapFace(self, filename):
+        if filename[:7] == self.keyword:
+            return True
+        else:
+            return False
     def findCubemapFiles(self, filenames):
         self.cubemap_files = []
         self.idxs = []
-        ic(filenames)
+        # ic(filenames)
         self.dict = defaultdict(list)
         for idx, filename in enumerate(filenames):
             # print(filename[:7], self.keyword)
-            if filename[:7] == self.keyword:
+            if self.checkCubemapFace(filename):
                 self.cubemap_files.append(filename)
                 self.idxs.append(idx)
                 filename_id = self.getFilenameID(filename)
                 self.dict[filename_id].append(idx)
 
 
-        ic(self.cubemap_files)
-        ic(self.dict)
+        # ic(self.cubemap_files)
+        # ic(self.dict)
     def getFilenameID(self, filename):
         filename_id = filename.split('.')[0].split('_')[1]
         return filename_id
@@ -61,14 +65,19 @@ class CubemapHandler():
         paths_images_not_reduced,
         query_image_names):
         query_image_names_not_reduced = []
-        for file in query_image_names:
-            # print(file)
-            filename_ID = self.getFilenameID(file)
-            # print(filename_ID)
-            cubemap_filenames = [i for i in paths_images_not_reduced if filename_ID in i]
-            # print(cubemap_filenames)
-            query_image_names_not_reduced.extend(cubemap_filenames)
-        print(query_image_names_not_reduced)
+        for filename in query_image_names:
+            # print(filename)
+            if self.checkCubemapFace(filename):
+                filename_ID = self.getFilenameID(filename)
+                # print(filename_ID)
+                cubemap_filenames = [i for i in paths_images_not_reduced if filename_ID in i]
+                # print(cubemap_filenames)
+                query_image_names_not_reduced.extend(cubemap_filenames)
+            else:
+                query_image_names_not_reduced.extend(filename)
+        print(len(query_image_names_not_reduced))
+        # pdb.set_trace()
+        query_image_names_not_reduced = [x.split('\\')[-1] for x in query_image_names_not_reduced]
         return query_image_names_not_reduced
 
     # def findUniqueIdxsInCubemapFiles(self):
