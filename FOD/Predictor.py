@@ -116,10 +116,7 @@ class Predictor(object):
             ])
         else:
             self.transform_image = transforms.Compose([
-                transforms.ToTensor(),
-                # transforms.Pad((
-                #     self.h + self.h % 16,
-                #     self.w + self.w % 16), fill=(128, 128, 128)),                 
+                transforms.ToTensor(),     
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
             ])                    
         self.output_dir = self.config['General']['path_predicted_images']
@@ -155,16 +152,6 @@ class Predictor(object):
                 # print(self.original_size)
                 # pdb.set_trace()
                 
-
-                '''
-                self.transform_image = transforms.Compose([
-                    transforms.ToTensor(),
-                    transforms.Pad((
-                        self.original_size[0] + self.original_size[0] % 16,
-                        self.original_size[1] + self.original_size[1] % 16), fill=(128, 128, 128)),                 
-                    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-                ])  
-                '''                  
                 pil_im, padding = utils.pad_if_needed(pil_im, self.original_size)
 
                 X = self.transform_image(pil_im).unsqueeze(0)
@@ -298,8 +285,6 @@ class PredictorEntropyAL(Predictor):
         if self.config['ActiveLearning']['diversity_method'] != False:
             self.output_values, self.reference_values, self.uncertainty_values, self.encoder_values = self.inferDataLoader(
                 test_dataloader, getEncoder=True)
-
-
         else:
             self.output_values, self.reference_values, self.uncertainty_values, _ = self.inferDataLoader(
                 test_dataloader)
