@@ -67,7 +67,10 @@ class LitModel(pl.LightningModule):
         # it is independent of forward
         
         x, filenames = batch
+        print(filenames)
+        print(torch.mean(x))
         x = self.transform_image(x)
+        print(torch.mean(x))
         # pdb.set_trace()
         encoder_features, y = self.model(x)
         encoder_features = encoder_features.mean((2, 3))
@@ -167,12 +170,13 @@ print(vars(args))
 class SaveOutcomesCallback(Callback):
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        
+        '''
         print(outputs['softmax'].shape)
         print(outputs['segmentations'].shape)
         print(outputs['uncertainty_map'].shape)
         print(outputs['uncertainty'].shape)
         print(outputs['encoder_features'].shape)
+        '''
         # print(outputs['filenames'])
         # pdb.set_trace()
         x, filenames = batch
@@ -186,7 +190,7 @@ class SaveOutcomesCallback(Callback):
             # np.savez(args['path_output'] +'/'+ args['path_segmentations'] +'/'+ filename + '.npz', 
             #     outputs['softmax'][idx])
             # pdb.set_trace()
-            print(os.path.join(args['path_output'], args['path_segmentations'], filename))
+            # print(os.path.join(args['path_output'], args['path_segmentations'], filename))
             cv2.imwrite(os.path.join(args['path_output'], args['path_segmentations'], filename), outputs['segmentations'][idx]*255)
 
             
