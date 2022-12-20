@@ -67,11 +67,7 @@ class LitModel(pl.LightningModule):
         # it is independent of forward
         
         x, filenames = batch
-        print(filenames)
-        print(torch.mean(x))
-        x = self.transform_image(x)
-        print(torch.mean(x))
-        # pdb.set_trace()
+
         encoder_features, y = self.model(x)
         encoder_features = encoder_features.mean((2, 3))
         y = torch.nn.functional.softmax(y, dim=1)
