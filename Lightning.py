@@ -147,7 +147,7 @@ parser.add_argument('-seed', type=int, default=0)
 
 parser.add_argument('-test_batch_size', type=int, default=1)
 
-parser.add_argument('-path_segmentations', type=str, default='segmentations')
+parser.add_argument('-path_segmentations', type=str, default='corrosion')
 parser.add_argument('-path_uncertainty', type=str, default='uncertainty')
 parser.add_argument('-path_uncertainty_map', type=str, default='uncertainty_map')
 parser.add_argument('-path_encoder_features', type=str, default='encoder_features')
