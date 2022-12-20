@@ -1,13 +1,21 @@
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
-from icecream import ic
+import skimage
+from skimage.morphology import disk
+import matplotlib.pyplot as plt
+
 epsilon = 1e-15
-def show_im(im, ax, title = "", cmap = "jet"):
-    im_plt = ax.imshow(im.astype(np.float32), cmap = cmap)
-    plt.title(title)
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-    plt.colorbar(im_plt, cax=cax) 
+
+def get_uncertainty_map(pred_prob):
+    pred_entropy = np.zeros(pred_prob.shape[0:3])
+    # ic(pred_entropy.shape)
+    
+    K = pred_prob.shape[-1]
+    for k in range(K):
+        pred_entropy = pred_entropy + pred_prob[..., k] * np.log(pred_prob[..., k] + epsilon) 
+    pred_entropy = - pred_entropy / K
+    return pred_entropy
+
 
 def get_mean(pred_probs):
       return np.mean(pred_probs, axis=0)
@@ -31,20 +39,6 @@ def predictive_entropy(pred_probs):
     pred_entropy = - pred_entropy / K
     return pred_entropy
 
-
-def get_uncertainty_map(pred_prob):
-    pred_entropy = np.zeros(pred_prob.shape[0:3])
-    # ic(pred_entropy.shape)
-    
-    K = pred_prob.shape[-1]
-    for k in range(K):
-        pred_entropy = pred_entropy + pred_prob[..., k] * np.log(pred_prob[..., k] + epsilon) 
-    pred_entropy = - pred_entropy / K
-    return pred_entropy
-
-    
-
-
 def apply_spatial_buffer(uncertainty, threshold = 0.2):
     uncertainty_thresholded = uncertainty.copy()
     uncertainty_thresholded[uncertainty_thresholded >= threshold] = 1
@@ -53,9 +47,6 @@ def apply_spatial_buffer(uncertainty, threshold = 0.2):
 
     return uncertainty_thresholded    
 
-import skimage
-from skimage.morphology import disk
-import matplotlib.pyplot as plt
 
 def get_border_from_binary_mask(mask, buffer = 3):
     mask_ = mask.copy()

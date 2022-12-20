@@ -1,7 +1,7 @@
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
-from FOD.dataset import HilaiDataset
+from src.dataset import HilaiDataset
 from glob import glob
 from argparse import ArgumentParser
 import pdb
@@ -10,9 +10,9 @@ import numpy as np
 import sys
 sys.path.append('segmentation_models_ptorch')
 import segmentation_models_pytorch_dropout as smpd
-from FOD.uncertainty import get_uncertainty_map
+from src.uncertainty import get_uncertainty_map
 import os
-from FOD.utils import create_dir, create_output_folders
+from src.utils import create_dir, create_output_folders
 import cv2
 from torchvision import transforms
 import matplotlib.pyplot as plt
@@ -105,8 +105,7 @@ class HilaiDataModule(pl.LightningDataModule):
 
         parser.add_argument('-test_batch_size', type=int, default=2)
 
-        # parser.add_argument("--encoder_weights", type=str, default=12)
-        # parser.add_argument("--data_path", type=str, default="/some/path")
+
         return parent_parser
         
     def __init__(self, **cfg):
@@ -171,8 +170,9 @@ class SaveOutcomesCallback(Callback):
         print(outputs['uncertainty_map'].shape)
         print(outputs['uncertainty'].shape)
         print(outputs['encoder_features'].shape)
+        print(outputs['filenames'])
         '''
-        # print(outputs['filenames'])
+        # 
         # pdb.set_trace()
         x, filenames = batch
 
@@ -180,8 +180,10 @@ class SaveOutcomesCallback(Callback):
             filename = filenames[idx].split('/')[-1]
             np.savez(args['path_output'] +'/'+ args['path_encoder_features'] +'/'+ filename[:-4] + '.npz', 
                 outputs['encoder_features'].cpu().detach().numpy()[idx])
-            # np.savez(args['path_output'] +'/'+ args['path_uncertainty'] +'/'+ filename[:-4] + '.npz', 
-            #     outputs['uncertainty'][idx])
+            np.savez(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename[:-4] + '.npz', 
+                outputs['uncertainty_map'][idx])
+            np.savez(args['path_output'] +'/'+ args['path_uncertainty'] +'/'+ filename[:-4] + '.npz', 
+                outputs['uncertainty'][idx])
             # np.savez(args['path_output'] +'/'+ args['path_segmentations'] +'/'+ filename + '.npz', 
             #     outputs['softmax'][idx])
             # pdb.set_trace()
@@ -193,14 +195,6 @@ class SaveOutcomesCallback(Callback):
             plt.axis('off')
             plt.savefig(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename, 
                 dpi=150, bbox_inches='tight', pad_inches=0.0)
-        # pdb.set_trace()
-
-        # salvar mascara de softmax e mapa de incerteza
-        # pl_module
-        # outputs
-
-        # batch: passar
-        pass
 
 trainer = pl.Trainer.from_argparse_args(args, callbacks=[SaveOutcomesCallback()],
     gpus=-1)
