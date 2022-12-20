@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import ConcatDataset
 
 from FOD.Trainer import Trainer
-from FOD.dataset import AutoFocusDataset
+from FOD.dataset import HilaiDataset
 
 import time
 import pdb
@@ -55,7 +55,7 @@ for dataset_name in list_data:
 
     dataset_config = config   
     print(dataset_name, dataset_config['Dataset']['splits'])     
-    dataset = AutoFocusDataset(dataset_config, dataset_name, 'train')
+    dataset = HilaiDataset(dataset_config, dataset_name, 'train')
     autofocus_datasets_train.append(dataset)
 train_data = ConcatDataset(autofocus_datasets_train)
 train_dataloader = DataLoader(train_data, batch_size=config['General']['batch_size'], shuffle=True, 
@@ -66,7 +66,7 @@ autofocus_datasets_val = []
 for dataset_name in list_data:
 
     dataset_config = config       
-    autofocus_datasets_val.append(AutoFocusDataset(dataset_config, dataset_name, 'val'))
+    autofocus_datasets_val.append(HilaiDataset(dataset_config, dataset_name, 'val'))
 val_data = ConcatDataset(autofocus_datasets_val)
 val_dataloader = DataLoader(val_data, batch_size=config['General']['batch_size'], shuffle=True)
 

@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import ConcatDataset
 
 from FOD.Trainer import Trainer
-from FOD.dataset import AutoFocusDataset
+from FOD.dataset import HilaiDataset
 import FOD.ActiveLearning as al
 import time
 import pdb
@@ -63,7 +63,7 @@ for dataset_name in list_data:
         dataset_config = config 
     
     print(dataset_name, dataset_config['Dataset']['splits'])     
-    dataset = AutoFocusDataset(dataset_config, dataset_name, 'train')
+    dataset = HilaiDataset(dataset_config, dataset_name, 'train')
     # pdb.set_trace()
     if dataset_name == "CorrosaoActiveLearning" or dataset_name == "CorrosaoActiveLearningReduced":
 
@@ -80,11 +80,11 @@ autofocus_datasets_val = []
 for dataset_name in list_data:
     if dataset_name == "CorrosaoActiveLearning" or dataset_name == "CorrosaoActiveLearningReduced":
         dataset_config = config_active_learning
-        dataset = AutoFocusDataset(dataset_config, dataset_name, 'train')
+        dataset = HilaiDataset(dataset_config, dataset_name, 'train')
         dataset = utils.filterSamplesByIdxs(dataset, recommendation_idxs_validation)
     else:
         dataset_config = config       
-        dataset = AutoFocusDataset(dataset_config, dataset_name, 'val')
+        dataset = HilaiDataset(dataset_config, dataset_name, 'val')
     autofocus_datasets_val.append(dataset)
 val_data = ConcatDataset(autofocus_datasets_val)
 val_dataloader = DataLoader(val_data, batch_size=config['General']['batch_size'], shuffle=True)

@@ -33,7 +33,7 @@ import FOD.utils as utils
 from glob import glob
 import pathlib
 
-from FOD.dataset import AutoFocusDataset
+from FOD.dataset import HilaiDataset
 from torch.utils.data import DataLoader, ConcatDataset
 from tqdm import tqdm
 from natsort import natsorted
@@ -271,7 +271,7 @@ class PredictorEntropyAL(Predictor):
         config_test['Dataset']['splits']['split_val'] = 0.
         config_test['Dataset']['splits']['split_test'] = 1.
         
-        self.test_data = AutoFocusDataset(config_test, 
+        self.test_data = HilaiDataset(config_test, 
             self.input_folder_path, 'test', 
             use_reference=config_test['Inference']['get_metrics'])
         print(len(self.test_data.paths_images))
@@ -291,7 +291,7 @@ class PredictorEntropyAL(Predictor):
 
 
         if self.config['ActiveLearning']['diversity_method'] == 'distance_to_train':
-            train_data = AutoFocusDataset(self.config, 'CorrosaoTrainTest', 'train')
+            train_data = HilaiDataset(self.config, 'CorrosaoTrainTest', 'train')
             train_dataloader = DataLoader(train_data, batch_size=self.config['General']['test_batch_size'], shuffle=False)
 
             _, _, _, self.train_encoder_values = self.inferDataLoader(

@@ -37,31 +37,27 @@ def get_total_paths(path, ext):
 
 def get_splitted_dataset(config, split, input_folder_path, path_images, path_segmentation = None):
     list_files = [os.path.basename(im) for im in path_images]
-    np.random.seed(config['General']['seed'])
+    np.random.seed(config['seed'])
     np.random.shuffle(list_files)
     if split == 'train':
-        selected_files = list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])]# [:100]
+        selected_files = list_files[:int(len(list_files)*config['split_train'])]# [:100]
         # selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     elif split == 'val':
-        selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train']):int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val'])]
+        selected_files = list_files[int(len(list_files)*config['split_train']):int(len(list_files)*config['split_train'])+int(len(list_files)*config['split_val'])]
         # selected_files = getFilesWithoutBlankReference(dataset_name, selected_files)
     else:
-        selected_files = list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):]# [:100]
+        selected_files = list_files[int(len(list_files)*config['split_train'])+int(len(list_files)*config['split_val']):]# [:100]
 
     # print("os.path.join(input_folder_path, config['Dataset']['paths']['path_images'])", 
     #     os.path.join(input_folder_path, config['Dataset']['paths']['path_images']))
-    print('Train list', list_files[:int(len(list_files)*config['Dataset']['splits']['split_train'])])
-    print('Val list', list_files[int(len(list_files)*config['Dataset']['splits']['split_train']):int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val'])])
-    print('Test list', list_files[int(len(list_files)*config['Dataset']['splits']['split_train'])+int(len(list_files)*config['Dataset']['splits']['split_val']):])
+    print('Train list', list_files[:int(len(list_files)*config['split_train'])])
+    print('Val list', list_files[int(len(list_files)*config['split_train']):int(len(list_files)*config['split_train'])+int(len(list_files)*config['split_val'])])
+    print('Test list', list_files[int(len(list_files)*config['split_train'])+int(len(list_files)*config['split_val']):])
 
     # exit(0)
 
-    path_images = [os.path.join(input_folder_path, config['Dataset']['paths']['path_images'], im[:-4]+config['Dataset']['extensions']['ext_images']) for im in selected_files]
-    if config['General']['load_reference'] == True:
-        path_segmentation = [os.path.join(input_folder_path, config['Dataset']['paths']['path_segmentations'], im[:-4]+config['Dataset']['extensions']['ext_images']) for im in selected_files]
-        return path_images, path_segmentation
-    else:
-        return path_images, None
+    path_images = [os.path.join(input_folder_path, config['path_images'], im[:-4]+config['filename_ext']) for im in selected_files]
+    return path_images, None
 
 '''
 def get_splitted_dataset(config, split, input_folder_path, path_images, path_depths, path_segmentation):
@@ -88,30 +84,13 @@ def get_splitted_dataset(config, split, input_folder_path, path_images, path_dep
     return path_images
 '''
 def get_transforms(config):
-    im_size = config['Dataset']['transforms']['resize']
-    if config['Dataset']['transforms']['resize_images'] == True:
-        
-        transform_image = transforms.Compose([
-            transforms.Resize((im_size, im_size)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])
-    else:
-        transform_image = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        ])        
 
-    transform_depth = transforms.Compose([
-        transforms.Resize((im_size, im_size)),
-        transforms.Grayscale(num_output_channels=1) ,
-        transforms.ToTensor()
-    ])
-    transform_seg = transforms.Compose([
-        transforms.Resize((im_size, im_size), interpolation=transforms.InterpolationMode.NEAREST),
-        ToMask(config['Dataset']['classes']),
-    ])
-    return transform_image, transform_depth, transform_seg
+    transform_image = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])        
+
+    return transform_image, None, None
 
 def get_losses(config):
     def NoneFunction(a, b):
@@ -139,6 +118,21 @@ def create_dir(directory):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
+
+
+def create_output_folders(cfg):
+
+    path_dir_segmentation = os.path.join(cfg['path_output'], cfg['path_segmentations'])
+    path_dir_uncertainty = os.path.join(cfg['path_output'], cfg['path_uncertainty'])
+    path_dir_encoder_features = os.path.join(cfg['path_output'], cfg['path_encoder_features'])
+    path_dir_uncertainty_map = os.path.join(cfg['path_output'], cfg['path_uncertainty_map'])
+
+    create_dir(path_dir_segmentation)
+    create_dir(path_dir_uncertainty)
+    create_dir(path_dir_encoder_features)
+    create_dir(path_dir_uncertainty_map)
+
+
 
 # def get_optimizer(config, net):
 #     if config['General']['optim'] == 'adam':

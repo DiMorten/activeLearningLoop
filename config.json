@@ -1,54 +1,36 @@
 {
     "General":{
-        "device":"cuda",
-        "type":"segmentation",
-        "model_timm":"vit_base_patch16_384",
-        "emb_dim":768,
-        "hooks":[2, 5, 8, 11],
-        "read":"projection",
-        "resample_dim":256,
-        "optim":"adam",
-        "lr_backbone":1e-5,
-        "lr_scratch":3e-4,
-        "loss_depth":"ssi",
-        "loss_segmentation":"ce",
-        "momentum":0.9,
-        "epochs":40,
-        "batch_size":4,
+
         "path_model":"models",
         "path_predicted_images":"output",
         "seed":0,
-        "patch_size":16,
-        "model_type":"deeplab",
         "test_batch_size": 1,
+        "model_type": "deeplab",
         "exp_id": 0,
         "load_reference": false
     },
     "Dataset":{
         "paths":{
-            "path_dataset":"C:/Users/jchamorro/Documents/petrobras/Darwin",
-            "list_datasets":["CorrosaoTrainTestReduced"],
+            "filename":"input/",
             "path_images":"imgs",
             "path_segmentations":"labels",
-            "path_depths":"depths",
             "path_uncertainty":"uncertainty"
         },
         "extensions":{
             "ext_images":".png",
-            "ext_segmentations":".png",
-            "ext_depths":".png"
+            "ext_segmentations":".png"
         },
         "splits":{
-            "split_train":0.4,
-            "split_val":0.1,
-            "split_test":0.5
+            "split_train":0.0,
+            "split_val":0.0,
+            "split_test":1.0
         },
         "transforms":{
             "resize":512,
             "p_flip":0.5,
             "p_crop":0.3,
             "p_rot":0.2,
-            "resize_images": true
+            "resize_images": false
         },
         "classes":{
             "1": {
@@ -57,30 +39,7 @@
             }
         }
     },
-    "Inference": {
-        "get_metrics": false,
-        "save_images": true
-    },
-    "ActiveLearning": {
-        "dataset": "CorrosaoActiveLearningReduced",
-        "full_train": false,
-        "method": "uncertainty",
-        "diversity_method": "cluster",
-        "pca": true,
-        "spatial_buffer": false,
-        "k": 100,
-        "beta": 5,
-        "random_percentage": 0
-    },
     "Cubemap": {
         "keyword": "cubemap"
-    },
-    "wandb":{
-        "enable":false,
-        "username":"younesbelkada",
-        "images_to_show":3,
-        "im_h":540,
-        "im_w":980
     }
-
 }
