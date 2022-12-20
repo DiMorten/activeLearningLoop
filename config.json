@@ -48,7 +48,7 @@
             "p_flip":0.5,
             "p_crop":0.3,
             "p_rot":0.2,
-            "resize_images": true
+            "resize_images": false
         },
         "classes":{
             "1": {

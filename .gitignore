@@ -14,3 +14,5 @@ models/FocusOnDepth.p
 *.p
 *.npy
 *.csv
+lightning_logs/*
+*.npz

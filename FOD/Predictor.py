@@ -153,8 +153,14 @@ class Predictor(object):
                 # pdb.set_trace()
                 
                 pil_im, padding = utils.pad_if_needed(pil_im, self.original_size)
+                self.transform_to_tensor = transforms.Compose([
+                    transforms.ToTensor()])
+                print("========", torch.mean(self.transform_to_tensor(pil_im)))
 
                 X = self.transform_image(pil_im).unsqueeze(0)
+                print(images)
+                print(torch.mean(X))
+                print(X.shape)
                 X = X.to(self.device)
                 # pdb.set_trace()
                 # ======= Predict
