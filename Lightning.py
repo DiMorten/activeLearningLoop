@@ -8,8 +8,8 @@ import pdb
 from pytorch_lightning.callbacks import Callback
 import numpy as np
 import sys
-import segmentation_models_ptorch.segmentation_models_pytorch_dropout as smpd
-import json
+sys.path.append('segmentation_models_ptorch')
+import segmentation_models_pytorch_dropout as smpd
 from FOD.uncertainty import get_uncertainty_map
 import os
 from FOD.utils import create_dir, create_output_folders
