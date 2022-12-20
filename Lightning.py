@@ -8,8 +8,7 @@ import pdb
 from pytorch_lightning.callbacks import Callback
 import numpy as np
 import sys
-sys.path.append('E:/jorg/phd/visionTransformer/activeLearningLoop/segmentation_models_ptorch')
-import segmentation_models_pytorch_dropout as smpd
+import segmentation_models_ptorch.segmentation_models_pytorch_dropout as smpd
 import json
 from FOD.uncertainty import get_uncertainty_map
 import os
