@@ -178,7 +178,7 @@ class SaveOutcomesCallback(Callback):
         x, filenames = batch
 
         for idx in range(x.shape[0]):
-            filename = filenames[idx].split('\\')[-1]
+            filename = filenames[idx].split('/')[-1]
             np.savez(args['path_output'] +'/'+ args['path_encoder_features'] +'/'+ filename[:-4] + '.npz', 
                 outputs['encoder_features'].cpu().detach().numpy()[idx])
             # np.savez(args['path_output'] +'/'+ args['path_uncertainty'] +'/'+ filename[:-4] + '.npz', 

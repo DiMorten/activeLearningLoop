@@ -56,8 +56,9 @@ def get_splitted_dataset(config, split, input_folder_path, path_images, path_seg
 
     # exit(0)
 
-    path_images = [os.path.join(input_folder_path, config['path_images'], im[:-4]+config['filename_ext']) for im in selected_files]
-    return path_images, None
+    path_images = [os.path.join(input_folder_path, im[:-4]+config['filename_ext']) for im in selected_files]
+    return path_images
+
 
 '''
 def get_splitted_dataset(config, split, input_folder_path, path_images, path_depths, path_segmentation):

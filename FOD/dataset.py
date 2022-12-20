@@ -43,7 +43,7 @@ class HilaiDataset(Dataset):
         input_folder_path = config['filename']
         self.use_reference = config['use_reference']
 
-        path_images = os.path.join(input_folder_path, config['path_images'])
+        path_images = input_folder_path # config['path_images']
 
         self.paths_images = get_total_paths(path_images, config['filename_ext'])
 
@@ -58,11 +58,8 @@ class HilaiDataset(Dataset):
 
         # ic(input_folder_path, self.paths_images)
         # utility func for splitting
-        if self.use_reference == True:
-            self.paths_images, self.paths_segmentations = get_splitted_dataset(
-                config, self.split, input_folder_path, self.paths_images, path_segmentation = self.paths_segmentations)
-        else:
-            self.paths_images, _ = get_splitted_dataset(config, self.split, input_folder_path, self.paths_images)
+
+        self.paths_images = get_splitted_dataset(config, self.split, input_folder_path, self.paths_images)
 
         # Get the transforms
         self.transform_image, self.transform_depth, self.transform_seg = get_transforms(config)
