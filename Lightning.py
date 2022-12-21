@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import Callback
 import numpy as np
 import sys
 sys.path.append('segmentation_models_ptorch')
-import segmentation_models_pytorch_dropout as smpd
+import segmentation_models_pytorch_custom as smpc
 from src.uncertainty import get_uncertainty_map
 import os
 from src.utils import create_dir, create_output_folders, save_to_csv
@@ -46,7 +46,7 @@ class LitModel(pl.LightningModule):
 
 
         
-        self.model = smpd.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', 
+        self.model = smpc.DeepLabV3Plus('tu-xception41', encoder_weights='imagenet', 
                     in_channels=3, classes=2)
 
         path_model = os.path.join(cfg['path_model'], self.model.__class__.__name__ + 
@@ -181,7 +181,7 @@ class SaveOutcomesCallback(Callback):
 
         for idx in range(x.shape[0]):
             filename = filenames[idx].split('/')[-1]
-            self.validation_filenames.append(filename.split('.')[0].split('_')[-2])
+            self.validation_filenames.append(filename)
             np.savez(args['path_output'] +'/'+ args['path_encoder_features'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['encoder_features'].cpu().detach().numpy()[idx])
             np.savez(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename.split('.')[0] + '.npz', 
@@ -200,9 +200,11 @@ class SaveOutcomesCallback(Callback):
             plt.savefig(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename, 
                 dpi=150, bbox_inches='tight', pad_inches=0.0)
     def on_validation_end(self, trainer, pl_module):
-        self.validation_filenames = list(dict.fromkeys(self.validation_filenames))
-        print(self.validation_filenames)
-        save_to_csv(list(self.validation_filenames), 
+
+        self.validation_filenames_360 = [x.split('.')[0].split('_')[-2] for x in self.validation_filenames]
+        self.validation_filenames_360 = list(dict.fromkeys(self.validation_filenames_360))
+        print(self.validation_filenames_360)
+        save_to_csv(list(self.validation_filenames_360), 
             args['path_output'],
             args['test_csv_name'] + '.csv')
         pdb.set_trace()
