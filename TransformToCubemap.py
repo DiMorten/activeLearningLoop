@@ -15,7 +15,7 @@ args = parser.parse_args()
 print(vars(args))
 args = vars(args)
 
-# 360images to cubmaps, path_input contains all the RGB images
+# 360 images to cubmaps, path_input contains all the RGB images
 cm.generate_cubmaps(args['path_input'], args['path_output'])
 
 # Split cubemaps into 6 images

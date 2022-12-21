@@ -49,8 +49,8 @@ class HilaiDataset(Dataset):
 
         assert (self.split in ['train', 'test', 'val']), "Invalid split!"
         print(len(self.paths_images))
-        # pdb.set_trace()
-        # assert (len(self.paths_images) == len(self.paths_depths)), "Different number of instances between the input and the depth maps"
+
+
         if self.use_reference == True:
             assert (len(self.paths_images) == len(self.paths_segmentations)), "Different number of instances between the input and the segmentation maps"
         assert (config['split_train']+config['split_test']+config['split_val'] == 1), "Invalid splits (sum must be equal to 1)"

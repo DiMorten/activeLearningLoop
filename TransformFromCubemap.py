@@ -9,7 +9,7 @@ import pandas as pd
 parser = ArgumentParser()
 # add PROGRAM level args
 parser.add_argument('-path_input_cubemap_segmentation', type=str, default="output/corrosion/")
-parser.add_argument('-path_output_cubemap', type=str, default="output/2D_predictions/")
+parser.add_argument('-path_output_2D', type=str, default="output/2D_predictions/")
 parser.add_argument('-path_csv', type=str, default="output/inference_csv.csv")
 parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 parser.add_argument('-path_output_360', type=str, default="output/corrosion_360/")
@@ -26,39 +26,37 @@ t0 = time.time()
 # %%
 # Create the cubmap prediction (each folder contains six images)
 # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
-path_cub_prediction = args['path_output_cubemap']
 
-if not os.path.exists(path_cub_prediction):
-    os.makedirs(path_cub_prediction)
+if not os.path.exists(args['path_output_2D']):
+    os.makedirs(args['path_output_2D'])
     
-path_segmentation = args['path_input_cubemap_segmentation']
 
 df = pd.read_csv(args['path_csv'], header=None)
 print(df)
 
 for i in range(0, len(df)):
     print('image: ', i)
-    cube_prediction = cm.join_images_from_name(path_segmentation + args['cubemap_keyword'] + '_' + df[0][i])
-    imageio.imwrite(path_cub_prediction + df[0][i] +'.png', cube_prediction)    
+    cm.cubemap_to_2D(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
+        df[0][i], args['path_output_2D'])
+        
+    
 # pdb.set_trace()
 
+print("...Finished cubemap to 2D conversion. Time:", t0 - time.time())
 
 # %%
-print("...Finished cubemap to 2D conversion")
-print("Time:", t0 - time.time())
+
 print("Starting 2D to 360 conversion...")
-path_cub_pred = args['path_output_cubemap']
-path_360_pred = args['path_output_360']
-if not os.path.exists(path_360_pred):
-    os.makedirs(path_360_pred)
+
+if not os.path.exists(args['path_output_360']):
+    os.makedirs(args['path_output_360'])
         
-img_pred = cm.return_files(path_cub_pred)
+img_pred = cm.return_files(args['path_output_2D'])
 print(img_pred)
 
 # Transform each cubmap prediction into a 360 image prediction
 for i in range(0, len(img_pred)):
     print(i)
-    cm.convert_img(path_cub_pred + img_pred[i], path_360_pred + img_pred[i])
+    cm.convert_img(args['path_output_2D'] + img_pred[i], args['path_output_360'] + img_pred[i])
 
-print("...Finished 2D to 360 conversion")
-print("Time:", t0 - time.time())
+print("...Finished 2D to 360 conversion. Time:", t0 - time.time())

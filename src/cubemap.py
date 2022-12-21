@@ -235,6 +235,11 @@ def join_images_from_name(path_segmentation):
     cube_size[width:width*2, width*3:width*4] = np.array(vec_img[2])
     cube_size[2*width:width*3, width:width*2] = np.array(vec_img[1])
     return cube_size
+def cubemap_to_2D(path_input, cubemap_keyword, filename_360, path_output_2D):
+    cube_prediction = join_images_from_name(
+        path_input + cubemap_keyword + '_' + filename_360)
+    imageio.imwrite(path_output_2D + filename_360 +'.png', cube_prediction)    
+
 
 def spherical_coordinates(i, j, w, h):
     """ Returns spherical coordinates of the pixel from the output image. """
