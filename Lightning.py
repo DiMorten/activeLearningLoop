@@ -12,7 +12,7 @@ sys.path.append('segmentation_models_ptorch')
 import segmentation_models_pytorch_dropout as smpd
 from src.uncertainty import get_uncertainty_map
 import os
-from src.utils import create_dir, create_output_folders
+from src.utils import create_dir, create_output_folders, save_to_csv
 import cv2
 from torchvision import transforms
 import matplotlib.pyplot as plt
@@ -149,6 +149,8 @@ parser.add_argument('-path_uncertainty', type=str, default='uncertainty')
 parser.add_argument('-path_uncertainty_map', type=str, default='uncertainty_map')
 parser.add_argument('-path_encoder_features', type=str, default='encoder_features')
 
+parser.add_argument('-test_csv_name', type=str, default='inference_csv')
+
 # add model specific args
 ## parser = LitModel.add_model_specific_args(parser)
 ## parser = HilaiDataModule.add_model_specific_args(parser)
@@ -160,8 +162,9 @@ args = parser.parse_args()
 # pdb.set_trace()
 print(vars(args))
 
-
 class SaveOutcomesCallback(Callback):
+    def on_validation_start(self, trainer, pl_module):
+        self.validation_filenames = []
 
     def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
         '''
@@ -178,11 +181,12 @@ class SaveOutcomesCallback(Callback):
 
         for idx in range(x.shape[0]):
             filename = filenames[idx].split('/')[-1]
-            np.savez(args['path_output'] +'/'+ args['path_encoder_features'] +'/'+ filename[:-4] + '.npz', 
+            self.validation_filenames.append(filename.split('.')[0].split('_')[-2])
+            np.savez(args['path_output'] +'/'+ args['path_encoder_features'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['encoder_features'].cpu().detach().numpy()[idx])
-            np.savez(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename[:-4] + '.npz', 
+            np.savez(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['uncertainty_map'][idx])
-            np.savez(args['path_output'] +'/'+ args['path_uncertainty'] +'/'+ filename[:-4] + '.npz', 
+            np.savez(args['path_output'] +'/'+ args['path_uncertainty'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['uncertainty'][idx])
             # np.savez(args['path_output'] +'/'+ args['path_segmentations'] +'/'+ filename + '.npz', 
             #     outputs['softmax'][idx])
@@ -195,7 +199,13 @@ class SaveOutcomesCallback(Callback):
             plt.axis('off')
             plt.savefig(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename, 
                 dpi=150, bbox_inches='tight', pad_inches=0.0)
-
+    def on_validation_end(self, trainer, pl_module):
+        self.validation_filenames = list(dict.fromkeys(self.validation_filenames))
+        print(self.validation_filenames)
+        save_to_csv(list(self.validation_filenames), 
+            args['path_output'],
+            args['test_csv_name'] + '.csv')
+        pdb.set_trace()
 trainer = pl.Trainer.from_argparse_args(args, callbacks=[SaveOutcomesCallback()],
     gpus=-1)
 

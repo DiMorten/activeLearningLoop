@@ -201,6 +201,41 @@ def join_images(path_segmentation):
     cube_size[2*width:width*3, width:width*2] = np.array(vec_img[1])
     return cube_size
 
+
+def join_images_from_name(path_segmentation):
+    # list to store files
+    face_filenames = []
+    face_ids = ['negx.png', 'negy.png', 'negz.png', 'posx.png', 'posy.png', 'posz.png']
+    # Iterate directory
+    for face_id in face_ids:
+        face_filenames.append(path_segmentation + '_' + face_id)
+
+    print(face_filenames)
+
+    vec_img = []
+    for face_filename in face_filenames:
+        #print(i)
+        vec_img.append(Image.open(face_filename))
+
+    name_map = [ \
+         ["", "posy", "", ""],
+         ["negz", "negx", "posz", "posx"],
+         ["", "negy", "", ""]]
+
+    width, height = np.array(vec_img[0]).shape
+    print(width, height)
+
+    cube_size = np.zeros((width * 3 , width * 4))
+    print(cube_size.shape)
+
+    cube_size[0:width, width:width*2] = np.array(vec_img[4])
+    cube_size[width:width*2, 0:width] = np.array(vec_img[0])
+    cube_size[width:width*2, width:width*2] = np.array(vec_img[5])
+    cube_size[width:width*2, width*2:width*3] = np.array(vec_img[3])
+    cube_size[width:width*2, width*3:width*4] = np.array(vec_img[2])
+    cube_size[2*width:width*3, width:width*2] = np.array(vec_img[1])
+    return cube_size
+
 def spherical_coordinates(i, j, w, h):
     """ Returns spherical coordinates of the pixel from the output image. """
     theta = 2*float(i)/float(w)-1

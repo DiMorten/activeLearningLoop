@@ -13,7 +13,8 @@ from torchvision import transforms, utils
 import pdb, sys
 from icecream import ic
 import cv2
-
+import pandas as pd
+import pathlib
 def getFilesWithoutBlankReference(dataset_name, files):
     path = 'C:/Users/jchamorro/Documents/petrobras/Darwin/'
     files_filtered = []
@@ -112,28 +113,6 @@ def create_output_folders(cfg):
 
 
 
-# def get_optimizer(config, net):
-#     if config['General']['optim'] == 'adam':
-#         optimizer = optim.Adam(net.parameters(), lr=config['General']['lr'])
-#     elif config['General']['optim'] == 'sgd':
-#         optimizer = optim.SGD(net.parameters(), lr=config['General']['lr'], momentum=config['General']['momentum'])
-#     return optimizer
-'''
-def get_optimizer(config, net):
-    names = set([name.split('.')[0] for name, _ in net.named_modules()]) - set(['', 'transformer_encoders'])
-    params_backbone = net.transformer_encoders.parameters()
-    params_scratch = list()
-    for name in names:
-        params_scratch += list(eval("net."+name).parameters())
-
-    if config['General']['optim'] == 'adam':
-        optimizer_backbone = optim.Adam(params_backbone, lr=config['General']['lr_backbone'])
-        optimizer_scratch = optim.Adam(params_scratch, lr=config['General']['lr_scratch'])
-    elif config['General']['optim'] == 'sgd':
-        optimizer_backbone = optim.SGD(params_backbone, lr=config['General']['lr_backbone'], momentum=config['General']['momentum'])
-        optimizer_scratch = optim.SGD(params_scratch, lr=config['General']['lr_scratch'], momentum=config['General']['momentum'])
-    return optimizer_backbone, optimizer_scratch
-'''
 def get_optimizer(config, net):
 
     if config['General']['optim'] == 'adam':
@@ -202,3 +181,12 @@ def unpad(im, padding):
     if padding is not None:
         im = im[:-padding[2], :-padding[1]]
     return im
+
+def save_to_csv(list, folder_path, filename):
+    df = pd.DataFrame(list)
+    df = df.reset_index(drop=True)
+    path = pathlib.Path(folder_path)
+    print("path", path)
+    path.mkdir(parents=True, exist_ok=True)
+    df.to_csv(str(path / filename),
+        index=False, header=False)
