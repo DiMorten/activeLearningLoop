@@ -198,7 +198,8 @@ class SaveOutcomesCallback(Callback):
     def on_validation_end(self, trainer, pl_module):
 
         # Save CSV with 360 image names
-        self.validation_filenames_360 = [x.split('.')[0].split('_')[-2] for x in self.validation_filenames]
+        self.validation_filenames_360 = [x.split('.')[0] for x in self.validation_filenames]
+        self.validation_filenames_360 = ['_'.join([x.split('_')[1],x.split('_')[2]]) for x in self.validation_filenames_360]
         self.validation_filenames_360 = list(dict.fromkeys(self.validation_filenames_360))
         print(self.validation_filenames_360)
 

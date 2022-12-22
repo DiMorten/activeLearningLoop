@@ -48,14 +48,15 @@ def x_generate_cubmaps(path_input, path_output, dims, n_jobs=40):
 def x_generate_cubmap(args):
 
     file, path_input, path_output, dims = args
-
-    filename = '/'.join(file.split('/')[-2:])
-    plataforma = file.split('/')[-2]
+    filename = '\\'.join(file.split('\\')[-2:])
+    print(file)
+    
+    plataforma = file.split('\\')[-2]
 
     print('processing image: ', filename)
     imgIn = Image.open(os.path.join(path_input, filename))
     #print(imgIn.size)
-    x_convertBack(imgIn,path_output, file.split('/')[-1].split('.')[0], dims=dims,plat=plataforma)
+    x_convertBack(imgIn,path_output, file.split('\\')[-1].split('.')[0], dims=dims,plat=plataforma)
     
 
 def x_convertBack(imgIn, path_output, filename, dims,plat):
@@ -73,6 +74,8 @@ def x_convertBack(imgIn, path_output, filename, dims,plat):
         o_img = cv2.cvtColor(o_img, cv2.COLOR_BGR2RGB)
         # if key == 'posx':
         #     o_img = np.flip(o_img, axis=(0,1))
+        # print(path_output + "cubemap_{}_".format(plat)+filename+"_"+key+".png")
+        # pdb.set_trace()
         cv2.imwrite(path_output + "cubemap_{}_".format(plat)+filename+"_"+key+".png", o_img)
 
 # ========== Custom transform to cubemap
@@ -300,7 +303,20 @@ def cubemap_to_2D(path_input, cubemap_keyword, filename_360, path_output_2D):
         path_input + cubemap_keyword + '_' + filename_360)
     imageio.imwrite(path_output_2D + filename_360 +'.png', cube_prediction)    
 
-def cubemap_to_360(path_input, cubemap_keyword, filename_360, path_output_360):
+def cubemaps_to_360(path_input, cubemap_keyword, filenames_360, path_output_360, n_jobs=1):
+    # Transform cubemap faces to 2D cubemap representation
+    args = []
+    for filename_360 in filenames_360:
+        args.append((path_input, cubemap_keyword, filename_360, path_output_360))
+
+    print(len(args))
+    print(mp.cpu_count())
+
+    pool = mp.Pool(n_jobs)
+    pool.map(cubemap_to_360,args)
+            
+def cubemap_to_360(args):
+    path_input, cubemap_keyword, filename_360, path_output_360 = args
     path_segmentation = path_input + cubemap_keyword + '_' + filename_360
     face_filenames = []
     face_ids = ['negx.png', 'posz.png', 'posx.png', 'negz.png', 'posy.png', 'negy.png']
@@ -334,7 +350,7 @@ def cubemap_to_360(path_input, cubemap_keyword, filename_360, path_output_360):
     
     print(path_output_360)
     print(filename_360)
-    cv2.imwrite(path_output_360 + '/' + filename_360 + ".png", np.squeeze(im))
+    cv2.imwrite(os.path.join(path_output_360, filename_360 + ".png"), np.squeeze(im))
     # pdb.set_trace()
     print(im.shape)
 

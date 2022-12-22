@@ -26,59 +26,61 @@ args = vars(args)
 df = pd.read_csv(args['path_csv'], header=None)
 print(df)
 t0 = time.time()
-if args['mode'] == 'xprojector':
-    # %%
-    print("Starting cubemap to 360 conversion...")
-    
-    # Create the cubmap prediction (each folder contains six images)
-    # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
-
-    if not os.path.exists(args['path_output_2D']):
-        os.makedirs(args['path_output_2D'])
+if __name__ == "__main__":
+    if args['mode'] == 'xprojector':
+        # %%
+        print("Starting cubemap to 360 conversion...")
         
-    # Transform cubemap faces to 2D cubemap representation
-    for i in range(0, len(df)):
-        print('image: ', i)
+        # Create the cubmap prediction (each folder contains six images)
+        # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
 
-        cm.cubemap_to_360(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
-            df[0][i], args['path_output_360'])
+        if not os.path.exists(args['path_output_2D']):
+            os.makedirs(args['path_output_2D'])
+        
+        filenames_360 = []
+        for i in range(0, len(df)):
+            filenames_360.append(df[0][i])
+
+        cm.cubemaps_to_360(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
+            filenames_360, args['path_output_360'], n_jobs=1)
+                
+
             
-        
-    print("...Finished cubemap to 360 conversion. Time:", time.time() - t0)
-elif args['mode'] == 'custom':
+        print("...Finished cubemap to 360 conversion. Time:", time.time() - t0)
+    elif args['mode'] == 'custom':
 
-    print("Starting cubemap to 2D conversion...")
+        print("Starting cubemap to 2D conversion...")
 
-    # %%
-    # Create the cubmap prediction (each folder contains six images)
-    # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
+        # %%
+        # Create the cubmap prediction (each folder contains six images)
+        # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
 
-    if not os.path.exists(args['path_output_2D']):
-        os.makedirs(args['path_output_2D'])
-        
-    for i in range(0, len(df)):
-        print('image: ', i)
-        cm.cubemap_to_2D(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
-            df[0][i], args['path_output_2D'])
+        if not os.path.exists(args['path_output_2D']):
+            os.makedirs(args['path_output_2D'])
             
-    print("...Finished cubemap to 2D conversion. Time:", t0 - time.time())
+        for i in range(0, len(df)):
+            print('image: ', i)
+            cm.cubemap_to_2D(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
+                df[0][i], args['path_output_2D'])
+                
+        print("...Finished cubemap to 2D conversion. Time:", t0 - time.time())
 
-    # %%
+        # %%
 
-    print("Starting 2D to 360 conversion...")
+        print("Starting 2D to 360 conversion...")
 
-    if not os.path.exists(args['path_output_360']):
-        os.makedirs(args['path_output_360'])
+        if not os.path.exists(args['path_output_360']):
+            os.makedirs(args['path_output_360'])
+                
+        img_pred = cm.return_files(args['path_output_2D'])
+        print(img_pred)
+
+        # Transform each cubmap prediction into a 360 image prediction
+        for i in range(0, len(img_pred)):
+            print(i)
+            print(args['path_output_2D'] + img_pred[i], args['path_output_360'] + img_pred[i])
+            cm.convert_img(args['path_output_2D'] + img_pred[i], args['path_output_360'] + img_pred[i])
             
-    img_pred = cm.return_files(args['path_output_2D'])
-    print(img_pred)
 
-    # Transform each cubmap prediction into a 360 image prediction
-    for i in range(0, len(img_pred)):
-        print(i)
-        print(args['path_output_2D'] + img_pred[i], args['path_output_360'] + img_pred[i])
-        cm.convert_img(args['path_output_2D'] + img_pred[i], args['path_output_360'] + img_pred[i])
-        
-
-    print("...Finished 2D to 360 conversion. Time:", t0 - time.time())
+        print("...Finished 2D to 360 conversion. Time:", t0 - time.time())
 

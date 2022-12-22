@@ -11,7 +11,7 @@ if __name__ == "__main__":
         formatter_class = argparse.RawDescriptionHelpFormatter,
         allow_abbrev=True)
 
-    parser.add_argument('-path_360_images', type=str, default="C:/Users/jchamorro/Downloads/P67/P67/sample_dir2/imgs/")
+    parser.add_argument('-path_360_images', type=str, default="C:/Users/jchamorro/Downloads/P67/P67/sample_dir2/")
     parser.add_argument('-path_cubemap_images', type=str, default="output/cub_maps_split/")
     parser.add_argument('-path_segmentation', type=str, default="output/corrosion/")
     parser.add_argument('-path_output_360', type=str, default="output/corrosion_360/")
