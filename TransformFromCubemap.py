@@ -21,9 +21,9 @@ args = parser.parse_args()
 print(vars(args))
 args = vars(args)
 
-print("Starting cubemap to 2D conversion...")
-t0 = time.time()
 # %%
+print("Starting cubemap to 360 conversion...")
+t0 = time.time()
 # Create the cubmap prediction (each folder contains six images)
 # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
 
@@ -42,22 +42,5 @@ for i in range(0, len(df)):
         df[0][i], args['path_output_360'])
         
     
-print("...Finished cubemap to 2D representation conversion. Time:", t0 - time.time())
+print("...Finished cubemap to 360 conversion. Time:", time.time() - t0)
 
-# %%
-'''
-print("Starting 2D to 360 conversion...")
-
-if not os.path.exists(args['path_output_360']):
-    os.makedirs(args['path_output_360'])
-        
-img_pred = cm.return_files(args['path_output_2D'])
-print(img_pred)
-
-# Transform each cubmap prediction into a 360 image prediction
-for i in range(0, len(img_pred)):
-    print(i)
-    cm.convert_img(args['path_output_2D'] + img_pred[i], args['path_output_360'] + img_pred[i])
-
-print("...Finished 2D to 360 conversion. Time:", t0 - time.time())
-'''

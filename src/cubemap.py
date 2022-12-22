@@ -53,8 +53,8 @@ def convertBack2(imgIn, path_output, filename, dims):
         print(proj.scanner_shadow_angle)
         o_img = proj.forward(np.array(imgIn), value[0], value[1],fov=(1,1))
         o_img = cv2.cvtColor(o_img, cv2.COLOR_BGR2RGB)
-        if key == 'posx':
-            o_img = np.flip(o_img, axis=(0,1))
+        # if key == 'posx':
+        #     o_img = np.flip(o_img, axis=(0,1))
         cv2.imwrite(path_output + "cubemap_"+filename+"_"+key+".png", o_img)
 
 
@@ -263,7 +263,8 @@ def cubemap_to_2D(path_input, cubemap_keyword, filename_360, path_output_2D):
 def cubemap_to_360(path_input, cubemap_keyword, filename_360, path_output_360):
     path_segmentation = path_input + cubemap_keyword + '_' + filename_360
     face_filenames = []
-    face_ids = ['negx.png', 'negy.png', 'negz.png', 'posx.png', 'posy.png', 'posz.png']
+    face_ids = ['negx.png', 'posz.png', 'posx.png', 'negz.png', 'posy.png', 'negy.png']
+    
     # Iterate directory
     for face_id in face_ids:
         face_filenames.append(path_segmentation + '_' + face_id)
