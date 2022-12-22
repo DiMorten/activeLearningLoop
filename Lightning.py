@@ -25,19 +25,8 @@ class LitModel(pl.LightningModule):
         parser = parent_parser.add_argument_group("LitModel")
         # fill arguments
         
-        parser.add_argument('-filename', type=str, default="input/")
-        parser.add_argument('-filename_ext', type=str, default=".png")
-        parser.add_argument('-path_images', type=str, default="imgs")
-
-        parser.add_argument('-split_train', type=float, default=0.)
-        parser.add_argument('-split_val', type=float, default=0.)
-        parser.add_argument('-split_test', type=float, default=1.)
-
-        parser.add_argument('-split', type=str, default='test')
-        parser.add_argument('-use_reference', type=bool, default=False)
-        parser.add_argument('-seed', type=int, default=0)
-
-        parser.add_argument('-test_batch_size', type=int, default=1)
+        parser.add_argument('-path_model', type=str, default="models")
+        parser.add_argument('-exp_id', type=int, default=0)
 
         return parent_parser
         
@@ -92,8 +81,11 @@ class HilaiDataModule(pl.LightningDataModule):
         parser = parent_parser.add_argument_group("HilaiDataModule")
         # fill arguments
 
-        parser.add_argument('-filename', type=str, default="input/")
+        parser.add_argument('-filename', type=str, default="output/cub_maps_split")
+
         parser.add_argument('-filename_ext', type=str, default=".png")
+
+        parser.add_argument('-path_output', type=str, default="output")
         parser.add_argument('-path_images', type=str, default="imgs")
 
         parser.add_argument('-split_train', type=float, default=0.)
@@ -102,10 +94,16 @@ class HilaiDataModule(pl.LightningDataModule):
 
         parser.add_argument('-split', type=str, default='test')
         parser.add_argument('-use_reference', type=bool, default=False)
-        parser.add_argument('-seed', type=int, default=0)
 
-        parser.add_argument('-test_batch_size', type=int, default=2)
+        parser.add_argument('-path_segmentations', type=str, default='corrosion')
+        parser.add_argument('-path_uncertainty', type=str, default='uncertainty')
+        parser.add_argument('-path_uncertainty_map', type=str, default='uncertainty_map')
+        parser.add_argument('-path_encoder_features', type=str, default='encoder_features')
 
+        parser.add_argument('-test_csv_name', type=str, default='inference_csv')
+        parser.add_argument('-mean_uncertainty_csv_name', type=str, default='mean_uncertainty')
+
+        parser.add_argument('-test_batch_size', type=int, default=6)
 
         return parent_parser
         
@@ -125,40 +123,17 @@ class HilaiDataModule(pl.LightningDataModule):
 
 parser = ArgumentParser()
 # add PROGRAM level args
-parser.add_argument('-filename', type=str, default="output/cub_maps_split")
 
-parser.add_argument('-filename_ext', type=str, default=".png")
-
-parser.add_argument('-path_output', type=str, default="output")
-parser.add_argument('-path_images', type=str, default="imgs")
-parser.add_argument('-path_model', type=str, default="models")
-parser.add_argument('-exp_id', type=int, default=0)
-
-
-parser.add_argument('-split_train', type=float, default=0.)
-parser.add_argument('-split_val', type=float, default=0.)
-parser.add_argument('-split_test', type=float, default=1.)
-
-parser.add_argument('-split', type=str, default='test')
-parser.add_argument('-use_reference', type=bool, default=False)
 parser.add_argument('-seed', type=int, default=0)
 
-parser.add_argument('-test_batch_size', type=int, default=6)
 
-parser.add_argument('-path_segmentations', type=str, default='corrosion')
-parser.add_argument('-path_uncertainty', type=str, default='uncertainty')
-parser.add_argument('-path_uncertainty_map', type=str, default='uncertainty_map')
-parser.add_argument('-path_encoder_features', type=str, default='encoder_features')
-
-parser.add_argument('-test_csv_name', type=str, default='inference_csv')
-parser.add_argument('-mean_uncertainty_csv_name', type=str, default='mean_uncertainty')
 
 # add model specific args
-## parser = LitModel.add_model_specific_args(parser)
-## parser = HilaiDataModule.add_model_specific_args(parser)
+parser = LitModel.add_model_specific_args(parser)
+parser = HilaiDataModule.add_model_specific_args(parser)
 # add all the available trainer options to argparse
 # ie: now --accelerator --devices --num_nodes ... --fast_dev_run all work in the cli
-## parser = pl.Trainer.add_argparse_args(parser)
+parser = pl.Trainer.add_argparse_args(parser)
 args = parser.parse_args()
 
 # pdb.set_trace()
