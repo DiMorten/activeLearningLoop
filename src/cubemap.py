@@ -26,23 +26,40 @@ def return_files(path_input):
     return res
 
 # ========== Xprojector transform to cubemap
+import multiprocessing as mp
+from pathlib import Path
+def x_generate_cubmaps(path_input, path_output, dims, n_jobs=40):
 
-def x_generate_cubmaps(path_input, path_output, dims):
 
     # list to store files
-    res = return_files(path_input)
+    #res = return_files(path_input)
 
-    for i in range (0, len(res)):
-        print('image: ', res[i])
-        x_generate_cubmap(res[i], path_input, path_output, dims=dims)
+    res = [str(i) for i in Path(path_input).glob('**/*.JPG')]
 
-def x_generate_cubmap(filename, path_input, path_output, dims):
-    imgIn = Image.open(path_input + filename)
-    print(imgIn.size)
-    x_convertBack(imgIn,path_output, filename.split('.')[0], dims=dims)
+    args = []
+    for file in res:
+        args.append((file, path_input, path_output, dims))
+    print(len(args))
+    print(mp.cpu_count())
+    pool = mp.Pool(n_jobs)
+    pool.map(x_generate_cubmap,args)
+
+
+def x_generate_cubmap(args):
+
+    file, path_input, path_output, dims = args
+
+    filename = '/'.join(file.split('/')[-2:])
+    plataforma = file.split('/')[-2]
+
+    print('processing image: ', filename)
+    imgIn = Image.open(os.path.join(path_input, filename))
+    #print(imgIn.size)
+    x_convertBack(imgIn,path_output, file.split('/')[-1].split('.')[0], dims=dims,plat=plataforma)
     
 
-def x_convertBack(imgIn, path_output, filename, dims):
+def x_convertBack(imgIn, path_output, filename, dims,plat):
+    
     
     proj = GnomonicProjector(dims=dims)
     # print(proj.scanner_shadow_angle)
@@ -56,7 +73,7 @@ def x_convertBack(imgIn, path_output, filename, dims):
         o_img = cv2.cvtColor(o_img, cv2.COLOR_BGR2RGB)
         # if key == 'posx':
         #     o_img = np.flip(o_img, axis=(0,1))
-        cv2.imwrite(path_output + "cubemap_"+filename+"_"+key+".png", o_img)
+        cv2.imwrite(path_output + "cubemap_{}_".format(plat)+filename+"_"+key+".png", o_img)
 
 # ========== Custom transform to cubemap
 
@@ -311,6 +328,9 @@ def cubemap_to_360(path_input, cubemap_keyword, filename_360, path_output_360):
         # print(vec_img[idx])
         # print(values)
         im += proj.backward(vec_img[idx], values[0], values[1], dims_360)
+        # np.unique(im, return_counts=True)
+        # pdb.set_trace()
+    im[im>128] = 255
     
     print(path_output_360)
     print(filename_360)
