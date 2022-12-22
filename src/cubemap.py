@@ -25,23 +25,25 @@ def return_files(path_input):
             res.append(path)
     return res
 
-def generate_cubmaps(path_input, path_output, dims):
+# ========== Xprojector transform to cubemap
+
+def x_generate_cubmaps(path_input, path_output, dims):
 
     # list to store files
     res = return_files(path_input)
 
     for i in range (0, len(res)):
         print('image: ', res[i])
-        generate_cubmap(res[i], path_input, path_output, dims=dims)
+        x_generate_cubmap(res[i], path_input, path_output, dims=dims)
 
-def generate_cubmap(filename, path_input, path_output, dims):
+def x_generate_cubmap(filename, path_input, path_output, dims):
     imgIn = Image.open(path_input + filename)
     print(imgIn.size)
     inSize = imgIn.size
-    convertBack2(imgIn,path_output, filename.split('.')[0], dims=dims)
+    x_convertBack(imgIn,path_output, filename.split('.')[0], dims=dims)
     
 
-def convertBack2(imgIn, path_output, filename, dims):
+def x_convertBack(imgIn, path_output, filename, dims):
     
     proj = GnomonicProjector(dims=dims)
     print(proj.scanner_shadow_angle)
@@ -57,7 +59,29 @@ def convertBack2(imgIn, path_output, filename, dims):
         #     o_img = np.flip(o_img, axis=(0,1))
         cv2.imwrite(path_output + "cubemap_"+filename+"_"+key+".png", o_img)
 
+# ========== Custom transform to cubemap
 
+def generate_cubmaps(path_input, path_output):
+    if not os.path.exists(path_output):
+        os.makedirs(path_output) 
+
+    # list to store files
+    res = return_files(path_input)
+
+    for i in range (0, len(res)):
+        print('image: ', res[i])
+        generate_cubmap(res[i], path_input, path_output)
+
+def generate_cubmap(filename, path_input, path_output):
+    imgIn = Image.open(path_input + filename)
+    print(imgIn.size)
+    inSize = imgIn.size
+    imgOut = Image.new("RGB",(inSize[0], int(inSize[0]*3/4)),"black")
+    convertBack(imgIn,imgOut)
+    print(imgOut.size)
+    imgOut.save(path_output + filename)
+
+# ========== ...Custom transform to cubemap
 
 # get x,y,z coords from out image pixels coords
 # i,j are pixel coords

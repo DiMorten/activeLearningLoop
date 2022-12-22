@@ -9,11 +9,21 @@ parser = ArgumentParser()
 parser.add_argument('-path_input', type=str, default="C:/Users/jchamorro/Downloads/P67/P67/sample_dir2/imgs/")
 parser.add_argument('-path_output', type=str, default="output/cub_maps/")
 parser.add_argument('-path_output_split', type=str, default="output/cub_maps_split/")
+parser.add_argument('-method', type=str, default="xprojector", choices=['xprojector', 'custom'])
 
 
 args = parser.parse_args()
 print(vars(args))
 args = vars(args)
 
-# 360 images to cubmaps, path_input contains all the RGB images
-cm.generate_cubmaps(args['path_input'], args['path_output_split'], dims=(1344, 1344))
+if args['method'] == 'xprojector':
+    # 360 images to cubmaps, path_input contains all the RGB images
+    cm.x_generate_cubmaps(args['path_input'], args['path_output_split'], dims=(1344, 1344))
+elif args['method'] == 'custom':
+
+    # 360images to cubmaps, path_input contains all the RGB images
+    cm.generate_cubmaps(args['path_input'], args['path_output'])
+
+    # Split cubemaps into 6 images
+    cm.split_cub_imgs(args['path_output'], args['path_output_split'])
+
