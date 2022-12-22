@@ -125,7 +125,7 @@ class HilaiDataModule(pl.LightningDataModule):
 
 parser = ArgumentParser()
 # add PROGRAM level args
-parser.add_argument('-filename', type=str, default="input/")
+parser.add_argument('-filename', type=str, default="output/cub_maps_split")
 
 parser.add_argument('-filename_ext', type=str, default=".png")
 
@@ -183,26 +183,18 @@ class SaveOutcomesCallback(Callback):
         x, filenames = batch
 
         for idx in range(x.shape[0]):
-            filename = filenames[idx].split('/')[-1]
+            filename = filenames[idx].split('/')[-1].split('\\')[-1]
             self.validation_filenames.append(filename)
+            self.uncertainty_mean_values.append(outputs['uncertainty'][idx])
+
             np.savez(args['path_output'] +'/'+ args['path_encoder_features'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['encoder_features'].cpu().detach().numpy()[idx])
             np.savez(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['uncertainty_map'][idx])
-            self.uncertainty_mean_values.append(outputs['uncertainty'][idx])
-            np.savez(args['path_output'] +'/'+ args['path_uncertainty'] +'/'+ filename.split('.')[0] + '.npz', 
-                outputs['uncertainty'][idx])
-            # np.savez(args['path_output'] +'/'+ args['path_segmentations'] +'/'+ filename + '.npz', 
-            #     outputs['softmax'][idx])
-            # pdb.set_trace()
-            # print(os.path.join(args['path_output'], args['path_segmentations'], filename))
+            
             cv2.imwrite(os.path.join(args['path_output'], args['path_segmentations'], filename), outputs['segmentations'][idx]*255)
 
             
-            plt.imshow(outputs['uncertainty_map'][idx], cmap = plt.cm.gray)
-            plt.axis('off')
-            plt.savefig(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename, 
-                dpi=150, bbox_inches='tight', pad_inches=0.0)
     def on_validation_end(self, trainer, pl_module):
 
         # Save CSV with 360 image names
@@ -216,16 +208,11 @@ class SaveOutcomesCallback(Callback):
         
 
         # Save CSV with mean uncertainty
-        # list = [self.validation_filenames, self.uncertainty_mean_values]
-        # list = zip(self.validation_filenames[0],self.validation_filenames[1])
+
         save_to_csv(zip(self.validation_filenames, self.uncertainty_mean_values), 
             args['path_output'],
             args['mean_uncertainty_csv_name'] + '.csv')
-        '''
-        with open(args['path_output'] + "/" + args['mean_uncertainty_csv_name'] + '.csv', "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows([self.validation_filenames, self.uncertainty_mean_values])
-        '''
+
 
 trainer = pl.Trainer.from_argparse_args(args, callbacks=[SaveOutcomesCallback()],
     gpus=-1)
@@ -234,7 +221,6 @@ args = vars(args)
 
 create_output_folders(args)
 
-# pdb.set_trace()
 # init the model
 model = LitModel(**args)
 

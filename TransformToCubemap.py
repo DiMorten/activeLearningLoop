@@ -16,9 +16,4 @@ print(vars(args))
 args = vars(args)
 
 # 360 images to cubmaps, path_input contains all the RGB images
-cm.generate_cubmaps(args['path_input'], args['path_output'])
-
-# Split cubemaps into 6 images
-cm.split_cub_imgs(args['path_output'], args['path_output_split'])
-
-# init the model
+cm.generate_cubmaps(args['path_input'], args['path_output_split'], dims=(1344, 1344))

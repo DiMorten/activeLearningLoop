@@ -30,22 +30,22 @@ t0 = time.time()
 if not os.path.exists(args['path_output_2D']):
     os.makedirs(args['path_output_2D'])
     
-
+# Read CSV with list of inference 360 images
 df = pd.read_csv(args['path_csv'], header=None)
 print(df)
 
+# Transform cubemap faces to 2D cubemap representation
 for i in range(0, len(df)):
     print('image: ', i)
-    cm.cubemap_to_2D(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
-        df[0][i], args['path_output_2D'])
+
+    cm.cubemap_to_360(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
+        df[0][i], args['path_output_360'])
         
     
-# pdb.set_trace()
-
-print("...Finished cubemap to 2D conversion. Time:", t0 - time.time())
+print("...Finished cubemap to 2D representation conversion. Time:", t0 - time.time())
 
 # %%
-
+'''
 print("Starting 2D to 360 conversion...")
 
 if not os.path.exists(args['path_output_360']):
@@ -60,3 +60,4 @@ for i in range(0, len(img_pred)):
     cm.convert_img(args['path_output_2D'] + img_pred[i], args['path_output_360'] + img_pred[i])
 
 print("...Finished 2D to 360 conversion. Time:", t0 - time.time())
+'''

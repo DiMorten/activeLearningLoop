@@ -9,6 +9,9 @@ from PIL import Image
 from numpy import clip
 import matplotlib.pyplot as plt 
 from math import pi,sin,cos,tan,atan2,hypot,floor
+from xprojector.objects import GnomonicProjector
+import cv2
+import pdb
 
 def return_files(path_input):
 
@@ -22,22 +25,39 @@ def return_files(path_input):
             res.append(path)
     return res
 
-def generate_cubmaps(path_input, path_output):
-    if not os.path.exists(path_output):
-        os.makedirs(path_output) 
+def generate_cubmaps(path_input, path_output, dims):
 
     # list to store files
     res = return_files(path_input)
 
     for i in range (0, len(res)):
         print('image: ', res[i])
-        imgIn = Image.open(path_input + res[i])
-        print(imgIn.size)
-        inSize = imgIn.size
-        imgOut = Image.new("RGB",(inSize[0], int(inSize[0]*3/4)),"black")
-        convertBack(imgIn,imgOut)
-        print(imgOut.size)
-        imgOut.save(path_output + res[i])
+        generate_cubmap(res[i], path_input, path_output, dims=dims)
+
+def generate_cubmap(filename, path_input, path_output, dims):
+    imgIn = Image.open(path_input + filename)
+    print(imgIn.size)
+    inSize = imgIn.size
+    convertBack2(imgIn,path_output, filename.split('.')[0], dims=dims)
+    
+
+def convertBack2(imgIn, path_output, filename, dims):
+    
+    proj = GnomonicProjector(dims=dims)
+    print(proj.scanner_shadow_angle)
+    angles = {'negx':(0,0),'posz':(np.pi/2,0),'posx':(np.pi,0),
+                  'negz':(-np.pi/2,0),'posy':(0,np.pi/2),'negy':(0,-np.pi/2)}
+
+    # angles = [[0,0], [0,np.pi/2], [0,np.pi], [0,-np.pi/2], [np.pi,0], [-np.pi,0]]
+    for key, value in angles.items():
+        print(proj.scanner_shadow_angle)
+        o_img = proj.forward(np.array(imgIn), value[0], value[1],fov=(1,1))
+        o_img = cv2.cvtColor(o_img, cv2.COLOR_BGR2RGB)
+        if key == 'posx':
+            o_img = np.flip(o_img, axis=(0,1))
+        cv2.imwrite(path_output + "cubemap_"+filename+"_"+key+".png", o_img)
+
+
 
 # get x,y,z coords from out image pixels coords
 # i,j are pixel coords
@@ -240,7 +260,41 @@ def cubemap_to_2D(path_input, cubemap_keyword, filename_360, path_output_2D):
         path_input + cubemap_keyword + '_' + filename_360)
     imageio.imwrite(path_output_2D + filename_360 +'.png', cube_prediction)    
 
+def cubemap_to_360(path_input, cubemap_keyword, filename_360, path_output_360):
+    path_segmentation = path_input + cubemap_keyword + '_' + filename_360
+    face_filenames = []
+    face_ids = ['negx.png', 'negy.png', 'negz.png', 'posx.png', 'posy.png', 'posz.png']
+    # Iterate directory
+    for face_id in face_ids:
+        face_filenames.append(path_segmentation + '_' + face_id)
 
+    print(face_filenames)
+
+    vec_img = []
+    for face_filename in face_filenames:
+        #print(i)
+        vec_img.append(np.array(Image.open(face_filename)))
+
+    H,W = vec_img[0].shape
+
+    proj = GnomonicProjector(dims=(H,W))
+    angles = {'negx':(0,0),'posz':(np.pi/2,0),'posx':(np.pi,0),
+                  'negz':(-np.pi/2,0),'posy':(0,np.pi/2),'negy':(0,-np.pi/2)}  
+
+    dims_360 = (2688, 5376)
+    im = np.zeros((dims_360[0], dims_360[1], 1))
+    for idx, (key, values) in enumerate(angles.items()):
+        # print(vec_img[idx])
+        # print(values)
+        im += proj.backward(vec_img[idx], values[0], values[1], dims_360)
+    
+    print(path_output_360)
+    print(filename_360)
+    cv2.imwrite(path_output_360 + '/' + filename_360 + ".png", np.squeeze(im))
+    # pdb.set_trace()
+    print(im.shape)
+
+    
 def spherical_coordinates(i, j, w, h):
     """ Returns spherical coordinates of the pixel from the output image. """
     theta = 2*float(i)/float(w)-1
