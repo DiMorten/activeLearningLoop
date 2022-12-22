@@ -39,20 +39,19 @@ def x_generate_cubmaps(path_input, path_output, dims):
 def x_generate_cubmap(filename, path_input, path_output, dims):
     imgIn = Image.open(path_input + filename)
     print(imgIn.size)
-    inSize = imgIn.size
     x_convertBack(imgIn,path_output, filename.split('.')[0], dims=dims)
     
 
 def x_convertBack(imgIn, path_output, filename, dims):
     
     proj = GnomonicProjector(dims=dims)
-    print(proj.scanner_shadow_angle)
+    # print(proj.scanner_shadow_angle)
     angles = {'negx':(0,0),'posz':(np.pi/2,0),'posx':(np.pi,0),
                   'negz':(-np.pi/2,0),'posy':(0,np.pi/2),'negy':(0,-np.pi/2)}
 
     # angles = [[0,0], [0,np.pi/2], [0,np.pi], [0,-np.pi/2], [np.pi,0], [-np.pi,0]]
     for key, value in angles.items():
-        print(proj.scanner_shadow_angle)
+        # print(proj.scanner_shadow_angle)
         o_img = proj.forward(np.array(imgIn), value[0], value[1],fov=(1,1))
         o_img = cv2.cvtColor(o_img, cv2.COLOR_BGR2RGB)
         # if key == 'posx':

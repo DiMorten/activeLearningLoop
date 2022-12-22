@@ -13,7 +13,7 @@ parser.add_argument('-path_output_2D', type=str, default="output/2D_predictions/
 parser.add_argument('-path_csv', type=str, default="output/inference_csv.csv")
 parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 parser.add_argument('-path_output_360', type=str, default="output/corrosion_360/")
-parser.add_argument('-method', type=str, default="xprojector", choices=['xprojector', 'custom'])
+parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojector', 'custom'])
 
 # parser.add_argument('-path_output_split', type=str, default="output/cub_maps_split/")
 
