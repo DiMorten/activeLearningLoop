@@ -13,9 +13,9 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 
-from src.utils import get_total_paths, get_splitted_dataset, get_transforms
+from src.utils import get_total_paths, get_splitted_dataset, get_transforms, ignore_already_computed
 import pdb
-from icecream import ic
+
 def show(imgs):
     fix, axs = plt.subplots(ncols=len(imgs), squeeze=False)
     for i, img in enumerate(imgs):
@@ -46,7 +46,9 @@ class HilaiDataset(Dataset):
         path_images = input_folder_path # config['path_images']
 
         self.paths_images = get_total_paths(path_images, config['filename_ext'])
-
+        # print(self.paths_images)
+        # pdb.set_trace()
+        # self.paths_images = ignore_already_computed(self.paths_images)
         assert (self.split in ['train', 'test', 'val']), "Invalid split!"
         print(len(self.paths_images))
 

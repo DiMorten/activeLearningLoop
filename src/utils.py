@@ -104,11 +104,13 @@ def create_output_folders(cfg):
     path_dir_segmentation = os.path.join(cfg['path_output'], cfg['path_segmentations'])
     path_dir_uncertainty = os.path.join(cfg['path_output'], cfg['path_uncertainty'])
     path_dir_encoder_features = os.path.join(cfg['path_output'], cfg['path_encoder_features'])
+    path_dir_aspp_features = os.path.join(cfg['path_output'], cfg['path_aspp_features'])
     path_dir_uncertainty_map = os.path.join(cfg['path_output'], cfg['path_uncertainty_map'])
 
     create_dir(path_dir_segmentation)
     create_dir(path_dir_uncertainty)
     create_dir(path_dir_encoder_features)
+    create_dir(path_dir_aspp_features)
     create_dir(path_dir_uncertainty_map)
 
 
@@ -190,5 +192,9 @@ def save_to_csv(list, folder_path, filename):
     path.mkdir(parents=True, exist_ok=True)
     df.to_csv(str(path / filename),
         index=False, header=False)
+
+# def ignore_already_computed(paths):
+#     for path in paths_images:
+
 
 

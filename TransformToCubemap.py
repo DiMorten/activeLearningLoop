@@ -16,10 +16,11 @@ args = parser.parse_args()
 print(vars(args))
 args = vars(args)
 start = time.time()
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     if args['mode'] == 'xprojector':
         # 360 images to cubmaps, path_360_images contains all the RGB images
-        cm.x_generate_cubmaps(args['path_360_images'], args['path_cubemap_images'], dims=(1344, 1344),n_jobs=1)
+        cm.x_generate_cubmaps(args['path_360_images'], args['path_cubemap_images'], dims=(1344, 1344))
     elif args['mode'] == 'custom':
 
         # 360images to cubmaps, path_360_images contains all the RGB images

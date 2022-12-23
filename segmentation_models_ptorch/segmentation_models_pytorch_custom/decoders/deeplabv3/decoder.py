@@ -99,11 +99,12 @@ class DeepLabV3PlusDecoder(nn.Module):
 
     def forward(self, *features):
         aspp_features = self.aspp(features[-1])
+        aspp_features_low_dim = torch.clone(aspp_features)
         aspp_features = self.up(aspp_features)
         high_res_features = self.block1(features[-4])
         concat_features = torch.cat([aspp_features, high_res_features], dim=1)
         fused_features = self.block2(concat_features)
-        return fused_features
+        return fused_features, aspp_features_low_dim
 
 
 class ASPPConv(nn.Sequential):

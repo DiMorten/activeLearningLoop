@@ -36,21 +36,48 @@ def x_generate_cubmaps(path_input, path_output, dims, n_jobs=40):
 
     res = [str(i) for i in Path(path_input).glob('**/*.JPG')]
 
+    res = ignore_already_computed(res, path_output)
+
     args = []
     for file in res:
         args.append((file, path_input, path_output, dims))
     print(len(args))
     print(mp.cpu_count())
-    pool = mp.Pool(n_jobs)
+    pool = mp.Pool(1)
     pool.map(x_generate_cubmap,args)
 
+def ignore_already_computed(res, path_output):
+    res_reduced = []
+    for path in res:
+        
+        filename = os.path.basename(path).split('.')[0]
+        platform = path.split('\\')[-2]
+        
+        filenames_cubemap = get_filename_cubemaps(filename, platform)
+        
+        cubemaps_exist = []
+        for filename_cubemap in filenames_cubemap:
+            path_cubemap = os.path.join(path_output, filename_cubemap)
+            
+            cubemaps_exist.append(os.path.exists(path_cubemap))
+        if not all([x == True for x in cubemaps_exist]):
+            res_reduced.append(path)
+    return res_reduced
+        
 
+def get_filename_cubemaps(filename, platform, keyword='cubemap'):
+    face_ids = ['negx', 'negy', 'negz', 'posx', 'posy', 'posz']
+    filenames_cubemap = []
+    for face_id in face_ids:
+        filenames_cubemap.append('_'.join([keyword, platform, filename, face_id]) + '.png')
+    return filenames_cubemap
+    
 def x_generate_cubmap(args):
 
     file, path_input, path_output, dims = args
+
+
     filename = '\\'.join(file.split('\\')[-2:])
-    print(file)
-    
     plataforma = file.split('\\')[-2]
 
     print('processing image: ', filename)
@@ -70,12 +97,11 @@ def x_convertBack(imgIn, path_output, filename, dims,plat):
     # angles = [[0,0], [0,np.pi/2], [0,np.pi], [0,-np.pi/2], [np.pi,0], [-np.pi,0]]
     for key, value in angles.items():
         # print(proj.scanner_shadow_angle)
-        o_img = proj.forward(np.array(imgIn), value[0], value[1],fov=(1,1))
+        o_img = proj.forward(np.array(imgIn), value[1], value[0],fov=(1,1)) #=====> ADJUSTED to value[1],value[0] from value[0],value[1]
         o_img = cv2.cvtColor(o_img, cv2.COLOR_BGR2RGB)
         # if key == 'posx':
         #     o_img = np.flip(o_img, axis=(0,1))
-        # print(path_output + "cubemap_{}_".format(plat)+filename+"_"+key+".png")
-        # pdb.set_trace()
+
         cv2.imwrite(path_output + "cubemap_{}_".format(plat)+filename+"_"+key+".png", o_img)
 
 # ========== Custom transform to cubemap
@@ -312,7 +338,7 @@ def cubemaps_to_360(path_input, cubemap_keyword, filenames_360, path_output_360,
     print(len(args))
     print(mp.cpu_count())
 
-    pool = mp.Pool(n_jobs)
+    pool = mp.Pool(1)
     pool.map(cubemap_to_360,args)
             
 def cubemap_to_360(args):

@@ -28,7 +28,7 @@ class SegmentationModel(torch.nn.Module):
         self.check_input_shape(x)
 
         features = self.encoder(x)
-        decoder_output = self.decoder(*features)
+        decoder_output, aspp_features_low_dim = self.decoder(*features)
 
         masks = self.segmentation_head(decoder_output)
 
@@ -36,7 +36,7 @@ class SegmentationModel(torch.nn.Module):
             labels = self.classification_head(features[-1])
             return masks, labels
 
-        return features[-1], masks
+        return features[-1], aspp_features_low_dim, masks
 
     @torch.no_grad()
     def predict(self, x):

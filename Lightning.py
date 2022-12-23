@@ -42,7 +42,7 @@ class LitModel(pl.LightningModule):
         path_model = os.path.join(cfg['path_model'], self.model.__class__.__name__ + 
             '_' + str(cfg['exp_id']) + '.p')
         print(path_model)
-        # pdb.set_trace()
+
         self.model.load_state_dict(
             torch.load(path_model)['model_state_dict']
         )
@@ -57,8 +57,9 @@ class LitModel(pl.LightningModule):
         
         x, filenames = batch
 
-        encoder_features, y = self.model(x)
+        encoder_features, aspp_features, y = self.model(x)
         encoder_features = encoder_features.mean((2, 3))
+        aspp_features = aspp_features.mean((2, 3))
         y = torch.nn.functional.softmax(y, dim=1)
         y = y.cpu().detach().numpy()
         segmentations = np.argmax(y, axis=1).astype(np.uint8)
@@ -73,7 +74,8 @@ class LitModel(pl.LightningModule):
         
         return {'softmax': y, 'segmentations': segmentations, 
             'uncertainty_map': uncertainty_map, 'uncertainty': uncertainty,
-            'encoder_features': encoder_features, 'filenames': filenames}
+            'encoder_features': encoder_features, 
+            'aspp_features': aspp_features, 'filenames': filenames}
         # return y
 class HilaiDataModule(pl.LightningDataModule):
     @staticmethod
@@ -99,6 +101,7 @@ class HilaiDataModule(pl.LightningDataModule):
         parser.add_argument('-path_uncertainty', type=str, default='uncertainty')
         parser.add_argument('-path_uncertainty_map', type=str, default='uncertainty_map')
         parser.add_argument('-path_encoder_features', type=str, default='encoder_features')
+        parser.add_argument('-path_aspp_features', type=str, default='aspp_features')
 
         parser.add_argument('-test_csv_name', type=str, default='inference_csv')
         parser.add_argument('-mean_uncertainty_csv_name', type=str, default='mean_uncertainty')
@@ -153,8 +156,7 @@ class SaveOutcomesCallback(Callback):
         print(outputs['encoder_features'].shape)
         print(outputs['filenames'])
         '''
-        # 
-        # pdb.set_trace()
+
         x, filenames = batch
 
         for idx in range(x.shape[0]):
@@ -164,6 +166,8 @@ class SaveOutcomesCallback(Callback):
 
             np.savez(args['path_output'] +'/'+ args['path_encoder_features'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['encoder_features'].cpu().detach().numpy()[idx])
+            np.savez(args['path_output'] +'/'+ args['path_aspp_features'] +'/'+ filename.split('.')[0] + '.npz', 
+                outputs['aspp_features'].cpu().detach().numpy()[idx])
             np.savez(args['path_output'] +'/'+ args['path_uncertainty_map'] +'/'+ filename.split('.')[0] + '.npz', 
                 outputs['uncertainty_map'][idx])
             

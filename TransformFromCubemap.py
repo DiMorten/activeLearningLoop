@@ -14,6 +14,7 @@ parser.add_argument('-path_csv', type=str, default="output/inference_csv.csv")
 parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 parser.add_argument('-path_output_360', type=str, default="output/corrosion_360/")
 parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojector', 'custom'])
+parser.add_argument('-n_jobs', type=int, default=1)
 
 # parser.add_argument('-path_output_split', type=str, default="output/cub_maps_split/")
 
@@ -26,13 +27,13 @@ args = vars(args)
 df = pd.read_csv(args['path_csv'], header=None)
 print(df)
 t0 = time.time()
+
 if __name__ == "__main__":
     if args['mode'] == 'xprojector':
         # %%
         print("Starting cubemap to 360 conversion...")
         
         # Create the cubmap prediction (each folder contains six images)
-        # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
 
         if not os.path.exists(args['path_output_2D']):
             os.makedirs(args['path_output_2D'])
@@ -42,7 +43,7 @@ if __name__ == "__main__":
             filenames_360.append(df[0][i])
 
         cm.cubemaps_to_360(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
-            filenames_360, args['path_output_360'], n_jobs=1)
+            filenames_360, args['path_output_360'], n_jobs=args['n_jobs'])
                 
 
             

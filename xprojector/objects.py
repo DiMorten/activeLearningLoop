@@ -56,7 +56,7 @@ class GnomonicProjector:
 
         o_img=[ndimage.map_coordinates(img[:,:,i], np.stack([phi,lamb]),order=0,prefilter=False,mode="nearest") for i in range(C)]
         o_img=np.stack(o_img,axis=-1)
-        o_img[mask]=0
+        #o_img[mask]=0
         return o_img
 
         self.f_projection=o_img
