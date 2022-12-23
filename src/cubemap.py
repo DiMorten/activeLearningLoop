@@ -46,32 +46,22 @@ def x_generate_cubmaps(path_input, path_output, dims, n_jobs=40):
     pool = mp.Pool(1)
     pool.map(x_generate_cubmap,args)
 
-def ignore_already_computed(res, path_output):
-    res_reduced = []
-    for path in res:
-        
-        filename = os.path.basename(path).split('.')[0]
-        platform = path.split('\\')[-2]
-        
-        filenames_cubemap = get_filename_cubemaps(filename, platform)
-        
-        cubemaps_exist = []
-        for filename_cubemap in filenames_cubemap:
-            path_cubemap = os.path.join(path_output, filename_cubemap)
-            
-            cubemaps_exist.append(os.path.exists(path_cubemap))
-        if not all([x == True for x in cubemaps_exist]):
-            res_reduced.append(path)
-    return res_reduced
-        
+def ignore_already_computed(input_paths, path_output):
+    output_files = os.listdir(path_output)
 
-def get_filename_cubemaps(filename, platform, keyword='cubemap'):
-    face_ids = ['negx', 'negy', 'negz', 'posx', 'posy', 'posz']
-    filenames_cubemap = []
-    for face_id in face_ids:
-        filenames_cubemap.append('_'.join([keyword, platform, filename, face_id]) + '.png')
-    return filenames_cubemap
-    
+    input_files = ['_'.join([x.split('\\')[-2], x.split('\\')[-1]]) for x in input_paths]
+    input_files = [x.split('.')[0] for x in input_files]
+    output_files = ['_'.join([x.split('_')[1], x.split('_')[2]]) for x in output_files]
+
+    input_paths_reduced = []
+    for input_path, input_file in zip(input_paths, input_files):
+        if input_file in output_files:
+            continue
+        else:
+            input_paths_reduced.append(input_path)
+    return input_paths_reduced
+
+
 def x_generate_cubmap(args):
 
     file, path_input, path_output, dims = args
