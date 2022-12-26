@@ -47,14 +47,15 @@ class HilaiDataset(Dataset):
         path_images = input_folder_path # config['path_images']
 
         self.paths_images = get_total_paths(path_images, config['filename_ext'])
-        print(self.paths_images)
-        pdb.set_trace()
+
         # df = pd.read_csv(config['input_csv'])
         # self.paths_images  =
-        if config['ignore_already_processed'] == True:
-            self.paths_images = ignore_already_processed(self.paths_images, self.path_output)
+        
+        print("Total of input files:", len(self.paths_images))
+        self.paths_images = ignore_already_processed(self.paths_images, self.path_output)
+        print("Number of pending files:", len(self.paths_images))
+
         assert (self.split in ['train', 'test', 'val']), "Invalid split!"
-        print(len(self.paths_images))
 
 
         if self.use_reference == True:
@@ -151,7 +152,8 @@ class HilaiDataset(Dataset):
 def ignore_already_processed(path_input, path_output):
     
     list_output_files = os.listdir(path_output)
-    list_input_files = [x.split('/')[-1] for x in path_input]
+    list_input_files = [x.replace('\\', '/').split('/')[-1] for x in path_input]
+    
     reduced_input_files = []
 
     for input_file in list_input_files:

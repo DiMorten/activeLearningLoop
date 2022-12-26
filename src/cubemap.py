@@ -35,7 +35,6 @@ def x_generate_cubmaps(path_input, path_output, dims, n_jobs=40):
     #res = return_files(path_input)
 
     res = [str(i) for i in Path(path_input).glob('**/*.JPG')]
-
     res = ignore_already_computed(res, path_output)
 
     args = []
@@ -43,16 +42,18 @@ def x_generate_cubmaps(path_input, path_output, dims, n_jobs=40):
         args.append((file, path_input, path_output, dims))
     #print(len(args))
     #print(mp.cpu_count())
+
     pool = mp.Pool(1)
     pool.map(x_generate_cubmap,args)
 
-def ignore_already_computed(input_paths, path_output):
+def ignore_already_computed(input_paths, path_output, ext = 'JPG'):
     output_files = os.listdir(path_output)
 
     input_files = ['_'.join([x.split('\\')[-2], x.split('\\')[-1]]) for x in input_paths]
     input_files = [x.split('.')[0] for x in input_files]
     output_files = ['_'.join([x.split('_')[1], x.split('_')[2]]) for x in output_files]
 
+    
     #input_paths_reduced = []
     #for input_path, input_file in zip(input_paths, input_files):
     #    if input_file in output_files:
@@ -61,6 +62,9 @@ def ignore_already_computed(input_paths, path_output):
     #        input_paths_reduced.append(input_path)
 
     input_paths_reduced = list(set(input_files).difference(output_files))
+    input_path = '/'.join(os.path.dirname(input_paths[0]).split('\\')[:-1])
+    input_paths_reduced = [x.replace('_', '/') for x in input_paths_reduced]
+    input_paths_reduced = [os.path.join(input_path, '{}.{}'.format(x,ext)) for x in input_paths_reduced]
 
     return input_paths_reduced
 
@@ -75,14 +79,16 @@ def x_generate_cubmap(args):
 
     file, path_input, path_output, dims = args
 
-
-    filename = '\\'.join(file.split('\\')[-2:])
-    plataforma = file.split('\\')[-2]
-
+    file = file.replace('\\', '/')
+    
+    filename = '/'.join(file.split('/')[-2:])
+    
+    plataforma = file.split('/')[-2]
+    
     print('processing image: ', filename)
     imgIn = Image.open(os.path.join(path_input, filename))
     #print(imgIn.size)
-    x_convertBack(imgIn,path_output, file.split('\\')[-1].split('.')[0], dims=dims,plat=plataforma)
+    x_convertBack(imgIn,path_output, file.split('/')[-1].split('.')[0], dims=dims,plat=plataforma)
     
 
 def x_convertBack(imgIn, path_output, filename, dims,plat):
@@ -98,8 +104,6 @@ def x_convertBack(imgIn, path_output, filename, dims,plat):
         # print(proj.scanner_shadow_angle)
         o_img = proj.forward(np.array(imgIn), value[1], value[0],fov=(1,1)) #=====> ADJUSTED to value[1],value[0] from value[0],value[1]
         o_img = cv2.cvtColor(o_img, cv2.COLOR_BGR2RGB)
-        # if key == 'posx':
-        #     o_img = np.flip(o_img, axis=(0,1))
 
         cv2.imwrite(path_output + "cubemap_{}_".format(plat)+filename+"_"+key+".png", o_img)
 
@@ -384,6 +388,7 @@ def cubemaps_to_360(path_input, cubemap_keyword, filenames_360, path_output_360,
             
 def cubemap_to_360(args):
     try:
+        
         path_input, cubemap_keyword, filename_360, path_output_360 = args
         path_segmentation = path_input + cubemap_keyword + '_' + filename_360
         face_filenames = []
