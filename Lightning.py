@@ -96,6 +96,7 @@ class HilaiDataModule(pl.LightningDataModule):
 
         parser.add_argument('-split', type=str, default='test')
         parser.add_argument('-use_reference', type=bool, default=False)
+        parser.add_argument('-ignore_already_processed', type=bool, default=True)
 
         parser.add_argument('-path_segmentations', type=str, default='corrosion')
         parser.add_argument('-path_uncertainty', type=str, default='uncertainty')

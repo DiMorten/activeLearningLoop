@@ -24,4 +24,4 @@ Dockerfile*
 *.ipynb
 *.toml
 *.flake8
-
+*.txt

@@ -5,6 +5,7 @@ import os, imageio
 import pdb
 import time
 import pandas as pd
+from pathlib import Path
 
 parser = ArgumentParser()
 # add PROGRAM level args
@@ -15,7 +16,15 @@ parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 parser.add_argument('-path_output_360', type=str, default="output/corrosion_360/")
 parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojector', 'custom'])
 parser.add_argument('-n_jobs', type=int, default=1)
-
+'''
+parser.add_argument('-path_input_cubemap_segmentation', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/corrosion/")
+parser.add_argument('-path_output_2D', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/2D_predictions/")
+parser.add_argument('-path_csv', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/inference_csv.csv")
+parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
+parser.add_argument('-path_output_360', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/corrosion_360/")
+parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojector', 'custom'])
+parser.add_argument('-n_jobs', type=int, default=1)
+'''
 # parser.add_argument('-path_output_split', type=str, default="output/cub_maps_split/")
 
 
@@ -24,26 +33,41 @@ print(vars(args))
 args = vars(args)
 
 # Read CSV with list of inference 360 images
-df = pd.read_csv(args['path_csv'], header=None)
-print(df)
+files = ['_'.join(str(i).split('/')[-1].split('_')[1:4]) for i in Path(args['path_input_cubemap_segmentation']).glob('**/*.png')]
+
+df = files #pd.read_csv(args['path_csv'], header=None)
+
+
 t0 = time.time()
+
+def init_folders(args):
+    if not os.path.exists(args['path_output_2D']):
+        os.makedirs(args['path_output_2D'])
+
+    if not os.path.exists(args['path_output_360']):
+        os.makedirs(args['path_output_360'])
+
+
+    with open(os.path.join(
+        os.path.dirname(args['path_csv']),"unsuccessful_from_cubemap.txt"), 'w') as f:
+        f.write('')
 
 if __name__ == "__main__":
     if args['mode'] == 'xprojector':
         # %%
         print("Starting cubemap to 360 conversion...")
-        
+        init_folders(args)
         # Create the cubmap prediction (each folder contains six images)
+        # path_cub_prediction = root_path + 'activeLearningLoop-main/output/cub_predictions/'
 
-        if not os.path.exists(args['path_output_2D']):
-            os.makedirs(args['path_output_2D'])
-        
+
+
         filenames_360 = []
         for i in range(0, len(df)):
-            filenames_360.append(df[0][i])
+            filenames_360.append(df[i])
 
         cm.cubemaps_to_360(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
-            filenames_360, args['path_output_360'], n_jobs=args['n_jobs'])
+            filenames_360, args['path_output_360'], args['path_csv'], n_jobs=args['n_jobs'])
                 
 
             
@@ -62,7 +86,7 @@ if __name__ == "__main__":
         for i in range(0, len(df)):
             print('image: ', i)
             cm.cubemap_to_2D(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
-                df[0][i], args['path_output_2D'])
+                df[i], args['path_output_2D'])
                 
         print("...Finished cubemap to 2D conversion. Time:", t0 - time.time())
 

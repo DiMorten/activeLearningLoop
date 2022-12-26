@@ -14,6 +14,7 @@ from torchvision import transforms
 import torchvision.transforms.functional as TF
 
 from src.utils import get_total_paths, get_splitted_dataset, get_transforms, save_to_csv
+import pandas as pd
 import pdb
 
 def show(imgs):
@@ -46,8 +47,12 @@ class HilaiDataset(Dataset):
         path_images = input_folder_path # config['path_images']
 
         self.paths_images = get_total_paths(path_images, config['filename_ext'])
-        
-        self.paths_images = ignore_already_computed(self.paths_images, self.path_output)
+        print(self.paths_images)
+        pdb.set_trace()
+        # df = pd.read_csv(config['input_csv'])
+        # self.paths_images  =
+        if config['ignore_already_processed'] == True:
+            self.paths_images = ignore_already_processed(self.paths_images, self.path_output)
         assert (self.split in ['train', 'test', 'val']), "Invalid split!"
         print(len(self.paths_images))
 
@@ -143,10 +148,10 @@ class HilaiDataset(Dataset):
 
 
 
-def ignore_already_computed(path_input, path_output):
+def ignore_already_processed(path_input, path_output):
     
     list_output_files = os.listdir(path_output)
-    list_input_files = [x.split('\\')[-1] for x in path_input]
+    list_input_files = [x.split('/')[-1] for x in path_input]
     reduced_input_files = []
 
     for input_file in list_input_files:
