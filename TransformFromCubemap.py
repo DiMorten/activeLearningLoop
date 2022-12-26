@@ -40,10 +40,6 @@ args = parser.parse_args()
 print(vars(args))
 args = vars(args)
 
-# Read CSV with list of inference 360 images
-files = ['_'.join(str(i).split('/')[-1].split('_')[1:4]) for i in Path(args['path_input_cubemap_segmentation']).glob('**/*.png')]
-
-df = files #pd.read_csv(args['path_csv'], header=None)
 
 
 t0 = time.time()
@@ -75,13 +71,11 @@ if __name__ == "__main__":
 
 
 
-        filenames_360 = []
-        for i in range(0, len(df)):
-            filenames_360.append(df[i])
-
         if args['load_split_dataset'] == True:
             filenames_360 = load_filenames_360_from_csv(args)
         else:
+            # Read CSV with list of inference 360 images
+            filenames_360 = ['_'.join(str(i).split('/')[-1].split('_')[1:4]) for i in Path(args['path_input_cubemap_segmentation']).glob('**/*.png')]
 
             filenames_360 = cm.get_unique_from_cubemaps(filenames_360)
             filenames_360 = list(set(filenames_360))
