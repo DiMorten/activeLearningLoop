@@ -16,6 +16,10 @@ parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 parser.add_argument('-path_output_360', type=str, default="output/corrosion_360/")
 parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojector', 'custom'])
 parser.add_argument('-n_jobs', type=int, default=1)
+
+parser.add_argument('-load_split_dataset', type=bool, default=True)
+parser.add_argument('-split_root', type=str, default="output/splits")
+parser.add_argument('-data_split', type=int, default=None)
 '''
 parser.add_argument('-path_input_cubemap_segmentation', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/corrosion/")
 parser.add_argument('-path_output_2D', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/2D_predictions/")
@@ -24,6 +28,10 @@ parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 parser.add_argument('-path_output_360', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/corrosion_360/")
 parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojector', 'custom'])
 parser.add_argument('-n_jobs', type=int, default=1)
+
+parser.add_argument('-load_split_dataset', type=bool, default=True)
+parser.add_argument('-split_root', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/splits")
+parser.add_argument('-data_split', type=int, default=None)
 '''
 # parser.add_argument('-path_output_split', type=str, default="output/cub_maps_split/")
 
@@ -52,6 +60,11 @@ def init_folders(args):
         os.path.dirname(args['path_csv']),"unsuccessful_from_cubemap.txt"), 'w') as f:
         f.write('')
 
+def load_filenames_360_from_csv(config):
+    csv_path = os.path.join(config['split_root'],"tmp_data_split_from_cubemap_{}.csv".format(config['data_split']))
+    filenames_360 = pd.read_csv(csv_path)['filename'].tolist()
+    return filenames_360
+
 if __name__ == "__main__":
     if args['mode'] == 'xprojector':
         # %%
@@ -65,6 +78,21 @@ if __name__ == "__main__":
         filenames_360 = []
         for i in range(0, len(df)):
             filenames_360.append(df[i])
+
+        if args['load_split_dataset'] == True:
+            filenames_360 = load_filenames_360_from_csv(args)
+        else:
+
+            filenames_360 = cm.get_unique_from_cubemaps(filenames_360)
+            filenames_360 = list(set(filenames_360))
+            # Transform cubemap faces to 2D cubemap representation
+            print('total of {} input files'.format(len(filenames_360)))
+
+            # ignore already processed files
+            filenames_360 = cm.ignore_already_processed_cubemaps(filenames_360, args['path_output_360'])
+
+
+        print('number of pending files: {}'.format(len(filenames_360)))
 
         cm.cubemaps_to_360(args['path_input_cubemap_segmentation'], args['cubemap_keyword'], 
             filenames_360, args['path_output_360'], args['path_csv'], n_jobs=args['n_jobs'])

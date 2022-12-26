@@ -43,7 +43,7 @@ def x_generate_cubmaps(path_input, path_output, dims, n_jobs=40):
     #print(len(args))
     #print(mp.cpu_count())
 
-    pool = mp.Pool(1)
+    pool = mp.Pool(mp.cpu_count())
     pool.map(x_generate_cubmap,args)
 
 def ignore_already_computed(input_paths, path_output, ext = 'JPG'):
@@ -346,12 +346,29 @@ def ignore_incomplete_cubemaps(filenames_360, path_input, faces, path_csv, keywo
             else:
                 faces_exist.append(False)
                 with open(path_csv, "a") as f:
-                    f.write("\n" + filename_cubemap)
+                    f.write("\n" + os.path.basename(filename_cubemap))
 
         if all([x == True for x in faces_exist]):
             filenames_cubemap_complete.append(filename_360)
     return filenames_cubemap_complete
 
+def check_complete_cubemap(filename_360, path_input, faces, path_csv, keyword='cubemap'):
+
+    faces_exist = []
+    for face in faces:
+        filename_cubemap = os.path.join(path_input, '{}_{}_{}'.format(keyword,filename_360,face))
+        if os.path.exists(filename_cubemap):
+            faces_exist.append(True) 
+        else:
+            faces_exist.append(False)
+            with open(path_csv, "a") as f:
+                f.write("\n" + os.path.basename(filename_cubemap))
+
+    if all([x == True for x in faces_exist]):
+        return True
+    else:
+        return False
+    
 def ignore_already_processed_cubemaps(filenames_360, path_output_360):
 
     output_filenames = ['_'.join(i.split('.')[0].split('_')[0:2]) for i in os.listdir(path_output_360)]
@@ -360,36 +377,32 @@ def ignore_already_processed_cubemaps(filenames_360, path_output_360):
     
 def cubemaps_to_360(path_input, cubemap_keyword, filenames_360, path_output_360, path_csv, n_jobs=1):
 
-    filenames_360 = get_unique_from_cubemaps(filenames_360)
-    filenames_360 = list(set(filenames_360))
-    # Transform cubemap faces to 2D cubemap representation
-    print('total of {} input files'.format(len(filenames_360)))
-    
-    # ignore already processed files
-    filenames_360 = ignore_already_processed_cubemaps(filenames_360, path_output_360)
-    print('number of pending files: {}'.format(len(filenames_360)))
-
 
     # ignore incomplete cubemaps
     faces = ['negx.png', 'negy.png', 'negz.png', 'posx.png', 'posy.png', 'posz.png']
     path_csv = os.path.join(os.path.dirname(path_csv),"unsuccessful_from_cubemap.txt")
-    filenames_360 = ignore_incomplete_cubemaps(filenames_360, path_input, faces, path_csv)
-    print('number of valid files: {}'.format(len(filenames_360)))
+
+    # filenames_360 = ignore_incomplete_cubemaps(filenames_360, path_input, faces, path_csv)
+    # print('number of valid files: {}'.format(len(filenames_360)))
 
     args = []
     for filename_360 in filenames_360:
-        args.append((path_input, cubemap_keyword, filename_360, path_output_360))
+        args.append((path_input, cubemap_keyword, filename_360, path_output_360, faces, path_csv))
 
     print(len(args))
     print(mp.cpu_count())
 
-    pool = mp.Pool(1)
+    pool = mp.Pool(mp.cpu_count())
     pool.map(cubemap_to_360,args)
             
 def cubemap_to_360(args):
     try:
-        
-        path_input, cubemap_keyword, filename_360, path_output_360 = args
+        path_input, cubemap_keyword, filename_360, path_output_360, faces, path_csv = args
+        if check_complete_cubemap(filename_360, path_input, faces, path_csv):
+            pass
+        else:
+            return
+
         path_segmentation = path_input + cubemap_keyword + '_' + filename_360
         face_filenames = []
         face_ids = ['negx.png', 'posz.png', 'posx.png', 'negz.png', 'posy.png', 'negy.png']
@@ -403,15 +416,10 @@ def cubemap_to_360(args):
         vec_img = []
         for face_filename in face_filenames:
             #print(i)
-            if os.path.exists(face_filename):
-                vec_img.append(np.array(Image.open(face_filename)))
-            else:
-                '''
-                with open(os.path.join(
-                    os.path.dirname(args['path_csv']),"unsuccessful_from_cubemap.txt"), 'a') as f:
-                    f.write("\n" + str(filename_360))
-                '''
-                return
+            # if os.path.exists(face_filename):
+            vec_img.append(np.array(Image.open(face_filename)))
+            # else:
+            #    return
         H,W = vec_img[0].shape
 
         proj = GnomonicProjector(dims=(H,W))
