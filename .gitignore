@@ -16,3 +16,12 @@ models/FocusOnDepth.p
 *.csv
 lightning_logs/*
 *.npz
+*.rst
+*Dockerfile*
+*.txt
+*.flake8
+*.bat
+*.ipynb
+*.toml
+*.in
+*Makefile
