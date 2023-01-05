@@ -17,7 +17,7 @@ parser.add_argument('-path_output_360', type=str, default="output/corrosion_360/
 parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojector', 'custom'])
 parser.add_argument('-n_jobs', type=int, default=1)
 
-parser.add_argument('-load_split_dataset', type=bool, default=True)
+parser.add_argument('-load_split_dataset', type=bool, default=False)
 parser.add_argument('-split_root', type=str, default="output/splits")
 parser.add_argument('-data_split', type=int, default=None)
 '''

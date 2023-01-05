@@ -368,7 +368,19 @@ def check_complete_cubemap(filename_360, path_input, faces, path_csv, keyword='c
         return True
     else:
         return False
-    
+'''
+def check_complete_cubemap(filename_360, path_input, faces, path_csv, keyword='cubemap'):
+
+    for face in faces:
+        filename_cubemap = os.path.join(path_input, '{}_{}_{}'.format(keyword,filename_360,face))
+        if os.path.exists(filename_cubemap):
+            continue 
+        else:
+            with open(path_csv, "a") as f:
+                f.write("\n" + os.path.basename(filename_cubemap))
+            return False
+    return True
+'''
 def ignore_already_processed_cubemaps(filenames_360, path_output_360):
 
     output_filenames = ['_'.join(i.split('.')[0].split('_')[0:2]) for i in os.listdir(path_output_360)]

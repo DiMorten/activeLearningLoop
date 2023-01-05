@@ -1,4 +1,4 @@
-from src.dataset import ignore_already_computed, get_total_paths
+from src.dataset import ignore_already_processed, get_total_paths
 import os
 import numpy as np
 import pandas as pd
@@ -12,12 +12,12 @@ def mkdir(path):
     pass
 
 parser = ArgumentParser()
-parser.add_argument('-filename', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/cub_maps_split")
+parser.add_argument('-filename', type=str, default="output/cub_maps_split")
 
 parser.add_argument('-filename_ext', type=str, default=".png")
 
-parser.add_argument('-path_output', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output")
-parser.add_argument('-data_splits_root', type=str, default="/petrobr/algo360/current/corrosion-detector-main/output/splits")
+parser.add_argument('-path_output', type=str, default="output")
+parser.add_argument('-data_splits_root', type=str, default="output/splits")
 parser.add_argument('-path_images', type=str, default="imgs")
 parser.add_argument('-path_segmentations', type=str, default='corrosion')
 parser.add_argument('-n_splits', type=int, default=2)
@@ -31,7 +31,7 @@ path_images =  config['filename']
 path_input = get_total_paths(path_images, config['filename_ext'])
 path_output = os.path.join(config['path_output'], config['path_segmentations'])
 
-files = ignore_already_computed(path_input, path_output)
+files = ignore_already_processed(path_input, path_output)
 
 ixs = np.arange(len(files))
 splits = np.array_split(ixs,config['n_splits'])
