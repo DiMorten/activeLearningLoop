@@ -13,7 +13,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 
-from FOD.utils import get_total_paths, get_splitted_dataset, get_transforms
+from src.utils import get_total_paths, get_splitted_dataset, get_transforms
 import pdb
 from icecream import ic
 def show(imgs):

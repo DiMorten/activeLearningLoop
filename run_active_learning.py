@@ -1,10 +1,10 @@
 import json
 import argparse
 import os
-from FOD.Predictor import PredictorEntropyAL # , PredictorEntropy
-from FOD.ActiveLearning import ActiveLearner
-from FOD.Trainer import Trainer
-from FOD.utils import boolean_string
+from src.Predictor import PredictorEntropyAL # , PredictorEntropy
+from src.ActiveLearning import ActiveLearner
+from src.Trainer import Trainer
+from src.utils import boolean_string
 import time
 import pdb
 if __name__ == "__main__":
@@ -42,15 +42,17 @@ if __name__ == "__main__":
     config['ActiveLearning']['beta'] = args.beta
     config['ActiveLearning']['cubemap_keyword'] = args.cubemap_keyword
 
+    config['ActiveLearning']['output_path'] = 'output/'
+    config['ActiveLearning']['image_path'] = 'C:/Users/jchamorro/Downloads/P67/predictions/0dc5f88627c582915d267e5e45a57d00/imgs/'
+    
     # pdb.set_trace()
     if os.path.exists(args.filename):
         print("Arquivo encontrado com sucesso")
         print(args.filename)
         # pdb.set_trace()
-        predictor = PredictorEntropyAL(config, args.filename)
-        predictor.loadPredictionResults()
-        activeLearner = ActiveLearner(config, args.filename)
-        activeLearner.run(predictor)
+        activeLearner = ActiveLearner(config)
+        activeLearner.loadData()
+        activeLearner.run()
 
         # faz oq tem q fazer com o cod do Jorge
         # 

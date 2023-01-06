@@ -5,14 +5,14 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import ConcatDataset
 
-from FOD.Trainer import Trainer
-from FOD.dataset import AutoFocusDataset
+from src.Trainer import Trainer
+from src.dataset import AutoFocusDataset
 
 import time
 import pdb
 import copy
 
-import FOD.utils as utils
+import src.utils as utils
 from icecream import ic
 import argparse
 ic.configureOutput(includeContext=True)

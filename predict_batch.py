@@ -1,10 +1,10 @@
 import json
 import argparse
 import os
-from FOD.Predictor import PredictorEntropyAL # , PredictorEntropy
-from FOD.ActiveLearning import ActiveLearner
-from FOD.Trainer import Trainer
-from FOD.utils import boolean_string
+from src.Predictor import PredictorEntropyAL # , PredictorEntropy
+from src.ActiveLearning import ActiveLearner
+from src.Trainer import Trainer
+from src.utils import boolean_string
 import time
 import pdb
 if __name__ == "__main__":

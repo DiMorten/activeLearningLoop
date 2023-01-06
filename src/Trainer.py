@@ -10,9 +10,9 @@ from torchsummary import summary
 from tqdm import tqdm
 from os import replace
 from numpy.core.numeric import Inf
-from FOD.utils import get_losses, get_optimizer, get_schedulers, create_dir
-from FOD.FocusOnDepth import FocusOnDepth
-from FOD.FCNs import ResUnetPlusPlus
+from src.utils import get_losses, get_optimizer, get_schedulers, create_dir
+from src.FocusOnDepth import FocusOnDepth
+from src.FCNs import ResUnetPlusPlus
 
 import sys
 sys.path.append('E:/jorg/phd/visionTransformer/activeLearningLoop/segmentation_models_ptorch')

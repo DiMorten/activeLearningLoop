@@ -5,9 +5,9 @@ import timm
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-from FOD.Reassemble import Reassemble
-from FOD.Fusion import Fusion
-from FOD.Head import HeadDepth, HeadSeg
+from src.Reassemble import Reassemble
+from src.Fusion import Fusion
+from src.Head import HeadDepth, HeadSeg
 
 torch.manual_seed(0)
 

@@ -10,8 +10,8 @@ from glob import glob
 from PIL import Image
 from torchvision import transforms, utils
 
-from FOD.Loss import ScaleAndShiftInvariantLoss
-from FOD.Custom_augmentation import ToMask
+from src.Loss import ScaleAndShiftInvariantLoss
+from src.Custom_augmentation import ToMask
 
 import pdb, sys
 from icecream import ic

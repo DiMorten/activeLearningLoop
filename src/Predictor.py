@@ -10,11 +10,11 @@ from PIL import Image
 import pdb
 from scipy.special import softmax
 
-from FOD.FocusOnDepth import FocusOnDepth
+from src.FocusOnDepth import FocusOnDepth
 
-from FOD.utils import create_dir
-from FOD.dataset import show
-import FOD.uncertainty as uncertainty
+from src.utils import create_dir
+from src.dataset import show
+import src.uncertainty as uncertainty
 
 import sys, pdb
 sys.path.append('E:/jorg/phd/visionTransformer/activeLearningLoop/segmentation_models_ptorch')
@@ -25,15 +25,15 @@ import segmentation_models_pytorch_dropout as smpd
 import time
 
 from sklearn import metrics
-import FOD.ActiveLearning as al
-from FOD.ActiveLearning import ActiveLearner
+import src.ActiveLearning as al
+from src.ActiveLearning import ActiveLearner
 from icecream import ic
 import copy
-import FOD.utils as utils
+import src.utils as utils
 from glob import glob
 import pathlib
 
-from FOD.dataset import AutoFocusDataset
+from src.dataset import AutoFocusDataset
 from torch.utils.data import DataLoader, ConcatDataset
 from tqdm import tqdm
 from natsort import natsorted

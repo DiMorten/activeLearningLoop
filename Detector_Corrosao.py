@@ -1,7 +1,7 @@
 import json
 import argparse
 import os
-from FOD.utils import boolean_string
+from src.utils import boolean_string
 import time
 
 if __name__ == "__main__":
