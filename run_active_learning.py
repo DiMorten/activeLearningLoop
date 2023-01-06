@@ -22,7 +22,9 @@ if __name__ == "__main__":
 
 
     parser.add_argument('-active_learning_diversity_method', 
-        type=str, default=None)
+        type=str, default='cluster', help='None, cluster, distance_to_train')
+    parser.add_argument('-cluster_n_components', type=int, default=6)
+
     parser.add_argument('-random_percentage', type=float, default=0)
     parser.add_argument('-k', type=int, default=3)
     parser.add_argument('-beta', type=int, default=2)
@@ -31,6 +33,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print(args)
+    # args = vars(args)
 
     with open('config.json', 'r') as f:
         config = json.load(f)
@@ -43,6 +46,7 @@ if __name__ == "__main__":
     config['ActiveLearning']['k'] = args.k
     config['ActiveLearning']['beta'] = args.beta
     config['ActiveLearning']['cubemap_keyword'] = args.cubemap_keyword
+    config['ActiveLearning']['cluster_n_components'] = args.cluster_n_components
 
     config['ActiveLearning']['output_path'] = args.output_path
     config['ActiveLearning']['image_path'] = args.image_path
