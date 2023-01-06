@@ -8,7 +8,7 @@ import pandas as pd
 import shutil
 import pathlib
 from glob import glob
-from src.Cubemap import CubemapHandler
+from src.CubemapHandler import CubemapHandler
 from natsort import natsorted
 import os
 def getFilenamesFromFolder(path):
@@ -16,8 +16,14 @@ def getFilenamesFromFolder(path):
     for name in glob(path + '/*.npz'):
         filenames.append(name)
     return filenames
-def loadFromFolder(path):
-    filenames = getFilenamesFromFolder(path)
+
+def getFilenamesFromFolderList(paths):
+    filenames = []
+    for path in paths:
+        filenames.extend(getFilenamesFromFolder(path))
+    return filenames
+def loadFromFolder(paths):
+    filenames = getFilenamesFromFolderList([os.path.join(path) for path in paths])
     for idx, filename in enumerate(filenames):
         if idx == 0:
             values = np.expand_dims(np.load(filename)['arr_0'], axis=0)
@@ -183,7 +189,7 @@ class ActiveLearner():
     def getTopRecommendations(self, uncertainty_values_mean, encoder_values, train_encoder_values = None):
 
         
-        if self.config['ActiveLearning']['diversity_method'] == "None":        
+        if self.config['ActiveLearning']['diversity_method'] == "None" or self.config['ActiveLearning']['diversity_method'] == None:        
             K = self.k
         else:
             K = self.k * self.config['ActiveLearning']['beta']
@@ -271,14 +277,17 @@ class ActiveLearner():
     def loadData(self):
 
         self.inferenceResults = lambda: None
-        self.inferenceResults.paths_images = getFilenamesFromFolder(os.path.join(
-            self.config['ActiveLearning']['output_path'], 'uncertainty_map'))
-        self.inferenceResults.paths_images = [os.path.basename(x) for x in self.inferenceResults.paths_images]
-        self.inferenceResults.uncertainty_values = loadFromFolder(os.path.join(
-            self.config['ActiveLearning']['output_path'], 'uncertainty_map'))
-        self.inferenceResults.encoder_values = loadFromFolder(os.path.join(
-            self.config['ActiveLearning']['output_path'], 'encoder_features'))
+        self.inferenceResults.paths_images = getFilenamesFromFolderList(
+            [os.path.join(
+            x, 'uncertainty_map') for x in self.config['ActiveLearning']['output_path']])
 
+        self.inferenceResults.paths_images = [os.path.basename(x) for x in self.inferenceResults.paths_images]
+        self.inferenceResults.uncertainty_values = loadFromFolder(
+            [os.path.join(x, 'uncertainty_map') for x in self.config['ActiveLearning']['output_path']]
+        )
+        self.inferenceResults.encoder_values = loadFromFolder(
+            [os.path.join(x, 'encoder_features') for x in self.config['ActiveLearning']['output_path']]
+        )
 
         print(self.inferenceResults.uncertainty_values.shape)
         # pdb.set_trace()

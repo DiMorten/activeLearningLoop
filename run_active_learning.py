@@ -14,7 +14,9 @@ if __name__ == "__main__":
         formatter_class = argparse.RawDescriptionHelpFormatter,
         allow_abbrev=True)
 
-    parser.add_argument('-filename', type=str)
+    parser.add_argument('-output_path', type=list, default = ['output/'])
+    parser.add_argument('-image_path', type=str, default = 'C:/Users/jchamorro/Downloads/P67/predictions/0dc5f88627c582915d267e5e45a57d00/imgs/')
+
     parser.add_argument('-get_metrics', type=boolean_string, default=False)
 
 
@@ -22,8 +24,8 @@ if __name__ == "__main__":
     parser.add_argument('-active_learning_diversity_method', 
         type=str, default=None)
     parser.add_argument('-random_percentage', type=float, default=0)
-    parser.add_argument('-k', type=int, default=100)
-    parser.add_argument('-beta', type=int, default=5)
+    parser.add_argument('-k', type=int, default=3)
+    parser.add_argument('-beta', type=int, default=2)
 
     parser.add_argument('-cubemap_keyword', type=str, default="cubemap")
 
@@ -42,20 +44,10 @@ if __name__ == "__main__":
     config['ActiveLearning']['beta'] = args.beta
     config['ActiveLearning']['cubemap_keyword'] = args.cubemap_keyword
 
-    config['ActiveLearning']['output_path'] = 'output/'
-    config['ActiveLearning']['image_path'] = 'C:/Users/jchamorro/Downloads/P67/predictions/0dc5f88627c582915d267e5e45a57d00/imgs/'
-    
-    # pdb.set_trace()
-    if os.path.exists(args.filename):
-        print("Arquivo encontrado com sucesso")
-        print(args.filename)
-        # pdb.set_trace()
-        activeLearner = ActiveLearner(config)
-        activeLearner.loadData()
-        activeLearner.run()
+    config['ActiveLearning']['output_path'] = args.output_path
+    config['ActiveLearning']['image_path'] = args.image_path
 
-        # faz oq tem q fazer com o cod do Jorge
-        # 
-    else:
-        print("Erro em encontrar o arquivo")
+    activeLearner = ActiveLearner(config)
+    activeLearner.loadData()
+    activeLearner.run()
 
