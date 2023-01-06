@@ -239,7 +239,7 @@ class ActiveLearner():
         sample_n_with_random_percentage = int(
             self.config['k'] * self.config['random_percentage'])
 
-        print("sample_n_with_random_percentage", sample_n_with_random_percentage)
+        print("sample_n with random percentage:", sample_n_with_random_percentage)
 
         recommendation_idxs_with_random_percentage = getRandomIdxs(len_vector, 
             sample_n_with_random_percentage)
@@ -253,7 +253,7 @@ class ActiveLearner():
 
     def getSelectedImageNames(self, paths_images):
         self.query_image_names = np.array(
-            [x.split("\\")[-1] for x in paths_images])[self.recommendation_idxs]
+            [os.path.basename(x) for x in paths_images])[self.recommendation_idxs]
 
     def saveSelectedImageNames(self, query_image_names):
         
@@ -340,10 +340,9 @@ class ActiveLearner():
         else:
             self.getTopRecommendations(self.inferenceResults.uncertainty_values_mean, None)
 
-
         if self.config['random_percentage'] > 0:
             self.getRandomIdxsForPercentage(self.len_vector)
-        
+       
         self.saveRecommendationIdxs()
 
         # self.query_image_names = [os.path.basename(x) for x in self.inferenceResults.paths_images]
@@ -352,8 +351,7 @@ class ActiveLearner():
 
         # self.saveSelectedImages(self.query_image_names)
 
-        # self.query_image_names = 
-        ic(self.query_image_names)
+        # print("self.query_image_names:", self.query_image_names)
         query_image_names_not_reduced = self.cubemapHandler.getCubemapFilenamesFromSingleFaceNames(
             self.inferenceResults.paths_images_not_reduced,
             self.query_image_names
@@ -377,13 +375,14 @@ class ActiveLearner():
         save_path = pathlib.Path(
             output_path)
         save_path.mkdir(parents=True, exist_ok=True)
-        try:
-            for file in query_image_names:
-                file = '{}.png'.format(file.split('.')[0])
+    
+        for file in query_image_names:
+            try:
+                # file = '{}.png'.format(file.split('.')[0])
                 shutil.copyfile(input_path + file, 
                     str(save_path / file))
-        except:
-            pass
+            except Exception as e:
+                print(e)
     def saveSelectedImages(self, query_image_names):
         
         print(query_image_names)
@@ -403,7 +402,7 @@ class ActiveLearner():
 
         self.copy_files_to_folder(
             input_path = self.config['output_path'] + \
-                    '/uncertainty/',
+                    '/uncertainty_map/',
             output_path = self.config['output_path'] + '/active_learning/query_images/uncertainty/',
             query_image_names = query_image_names
             )

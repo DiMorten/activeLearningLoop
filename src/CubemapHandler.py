@@ -2,6 +2,7 @@ import pdb
 from icecream import ic
 from collections import defaultdict
 import numpy as np
+import os
 class CubemapHandler():
     def __init__(self, keyword):
         self.keyword = keyword
@@ -65,11 +66,10 @@ class CubemapHandler():
         paths_images_not_reduced,
         query_image_names):
 
-        paths_images_not_reduced = [x.split('\\')[-1] for x in paths_images_not_reduced]
-
+        paths_images_not_reduced = [os.path.basename(x) for x in paths_images_not_reduced]
         query_image_names_not_reduced = []
         for filename in query_image_names:
-            print(filename)
+            # print(filename)
             if self.checkCubemapFace(filename):
                 filename_ID = self.getFilenameID(filename)
                 # print(filename_ID)
@@ -79,7 +79,6 @@ class CubemapHandler():
             # else:
             #     query_image_names_not_reduced.extend(filename)
         print(len(query_image_names_not_reduced))
-
         return query_image_names_not_reduced
 
     # def findUniqueIdxsInCubemapFiles(self):
