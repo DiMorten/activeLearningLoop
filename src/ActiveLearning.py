@@ -54,18 +54,19 @@ def getTopRecommendations(mean_values, K=500):
     return np.flip(sorted_values)[:K], recommendation_idxs
 
 
-def getRepresentativeSamplesFromCluster(values, recommendation_idxs, k=250, 
-    n_components = 100, mode='cluster'):
+def getRepresentativeSamplesFromCluster(values, recommendation_idxs, k=250):
+    # n_components = 100):
 
     '''
     values: shape (n_samples, feature_len)
     '''
-
+    '''
     pca = PCA(n_components = n_components)
     pca.fit(values)
     values = pca.transform(values)
     # print(pca.explained_variance_ratio_)
-    # pdb.set_trace()
+    '''
+
 
     cluster = KMeans(n_clusters = k)
     print("Fitting cluster...")
@@ -215,8 +216,8 @@ class ActiveLearner():
             representative_idxs, self.recommendation_idxs = getRepresentativeSamplesFromCluster(
                 encoder_values[self.recommendation_idxs], 
                 self.recommendation_idxs, 
-                k=self.k,
-                n_components = self.config['cluster_n_components'])
+                k=self.k)
+                # n_components = self.config['cluster_n_components'])
 
             self.sorted_values = self.sorted_values[representative_idxs]
         elif self.config['diversity_method'] == 'distance_to_train':
@@ -287,7 +288,7 @@ class ActiveLearner():
             [os.path.join(self.config['output_path'], 'uncertainty_map', x) for x in self.config['output_folders']]
         )
         self.inferenceResults.encoder_values = loadFromFolder(
-            [os.path.join(self.config['output_path'], 'encoder_features', x) for x in self.config['output_folders']]
+            [os.path.join(self.config['output_path'], 'aspp_features', x) for x in self.config['output_folders']]
         )
 
         print(self.inferenceResults.encoder_values.shape)
