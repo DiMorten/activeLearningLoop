@@ -290,6 +290,8 @@ class ActiveLearner():
             [os.path.join(self.config['output_path'], 'encoder_features', x) for x in self.config['output_folders']]
         )
 
+        print(self.inferenceResults.encoder_values.shape)
+        pdb.set_trace()
         print(self.inferenceResults.uncertainty_values.shape)
         # pdb.set_trace()
         
@@ -336,7 +338,8 @@ class ActiveLearner():
 
 
         if self.config['diversity_method'] != None and self.config['diversity_method'] != "None":
-            self.getTopRecommendations(self.inferenceResults.uncertainty_values_mean, self.inferenceResults.encoder_values)
+            self.getTopRecommendations(self.inferenceResults.uncertainty_values_mean, 
+                self.inferenceResults.encoder_values)
         else:
             self.getTopRecommendations(self.inferenceResults.uncertainty_values_mean, None)
 
@@ -371,14 +374,14 @@ class ActiveLearner():
         print("sorted mean uncertainty", self.sorted_values)
     
     def copy_files_to_folder(self, input_path, output_path,
-        query_image_names):
+        query_image_names, ext = 'png'):
         save_path = pathlib.Path(
             output_path)
         save_path.mkdir(parents=True, exist_ok=True)
     
         for file in query_image_names:
             try:
-                # file = '{}.png'.format(file.split('.')[0])
+                file = '{}.{}'.format(file.split('.')[0], ext)
                 shutil.copyfile(input_path + file, 
                     str(save_path / file))
             except Exception as e:
@@ -390,20 +393,23 @@ class ActiveLearner():
         self.copy_files_to_folder(
             input_path = self.config['image_path'],
             output_path = self.config['output_path'] + '/active_learning/query_images/imgs/',
-            query_image_names = query_image_names
+            query_image_names = query_image_names,
+            ext = 'png'
             )
 
         self.copy_files_to_folder(
             input_path = self.config['output_path'] + \
                     '/segmentations/',
             output_path = self.config['output_path'] + '/active_learning/query_images/segmentations/',
-            query_image_names = query_image_names            
+            query_image_names = query_image_names,
+            ext = 'png'            
             )
 
         self.copy_files_to_folder(
             input_path = self.config['output_path'] + \
                     '/uncertainty_map/',
             output_path = self.config['output_path'] + '/active_learning/query_images/uncertainty/',
-            query_image_names = query_image_names
+            query_image_names = query_image_names,
+            ext = 'npz'
             )
 
