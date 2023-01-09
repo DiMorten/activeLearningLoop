@@ -291,7 +291,7 @@ class ActiveLearner():
         )
 
         print(self.inferenceResults.encoder_values.shape)
-        pdb.set_trace()
+        # pdb.set_trace()
         print(self.inferenceResults.uncertainty_values.shape)
         # pdb.set_trace()
         
