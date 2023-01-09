@@ -256,10 +256,12 @@ class ActiveLearner():
         self.query_image_names = np.array(
             [os.path.basename(x) for x in paths_images])[self.recommendation_idxs]
 
-    def saveSelectedImageNames(self, query_image_names):
+    def saveSelectedImageNames(self, query_image_names, ext = "png"):
         
+        query_image_names = ["{}.{}".format(x.split('.')[0], ext) for x in query_image_names]
         print(
             "sorted name IDs", query_image_names)
+
         #  convert array into dataframe
         df = pd.DataFrame(query_image_names)
         df = df.reset_index(drop=True)
