@@ -103,12 +103,20 @@ def getDistanceToList(value, train_values):
         if distance_ < distance_to_train:
             distance_to_train = distance_
     return distance_to_train
+def getDistancesToSample(values, sample):
+    distances = []
+    for value in values:
+        print(len(values), value.shape, sample.shape)
+        distances.append(distance.cosine(value, sample))
+    return distances
+
 def getSampleWithLargestDistance(distances, mask):
     distances = np.ma.array(distances, mask = mask)
     # ic(np.ma.count_masked(distances))
     # ic(np.unique(mask, return_counts=True))
     # pdb.set_trace()
-    return np.ma.max(distances, fill_value=0), np.ma.argmax(distances, fill_value=0)
+    return np.ma.argmax(distances, fill_value=0)
+    # return np.ma.max(distances, fill_value=0), np.ma.argmax(distances, fill_value=0)
 
 def getRepresentativeSamplesFromDistance(values, recommendation_idxs, train_values, k=250, mode='max_k_cover'):
 
@@ -116,13 +124,13 @@ def getRepresentativeSamplesFromDistance(values, recommendation_idxs, train_valu
     values: shape (n_samples, feature_len)
     train_values: shape (train_n_samples, feature_len)
     '''
-
+    '''
     pca = PCA(n_components = 100)
     pca.fit(values)
     values = pca.transform(values)
-
     train_values = pca.transform(train_values)
-    
+    '''
+
     distances_to_train = []
     representative_idxs = []
     for value in values:
@@ -133,7 +141,7 @@ def getRepresentativeSamplesFromDistance(values, recommendation_idxs, train_valu
     values_selected_mask = np.zeros((len(values)), dtype=np.bool)
     for k_idx in range(k):
         print(k_idx)
-        selected_sample, selected_sample_idx = getSampleWithLargestDistance(
+        selected_sample_idx = getSampleWithLargestDistance(
             distances_to_train, 
             mask = values_selected_mask)
         representative_idxs.append(selected_sample_idx)
@@ -141,18 +149,18 @@ def getRepresentativeSamplesFromDistance(values, recommendation_idxs, train_valu
         values_selected_mask[selected_sample_idx] = True
         # values.pop(selected_sample_idx)
         # distances_to_train.pop(selected_sample_idx)
-        '''
-        distances_to_previously_selected_sample = getDistancesToValue(
+        
+        distances_to_previously_selected_sample = getDistancesToSample(
             values,
-            selected_sample_idx
+            values[selected_sample_idx]
         )
-        '''
+        
         for idx, value in enumerate(values):
             # ic(distances_to_train[idx])
             # ic(selected_sample)
             # pdb.set_trace()
             distances_to_train[idx] = np.minimum(distances_to_train[idx], 
-                selected_sample)
+                distances_to_previously_selected_sample[idx])
     representative_idxs = np.array(representative_idxs)
     # print("1", values_selected_mask.argwhere(values_selected_mask == True))
     print("2", len(representative_idxs))
@@ -292,6 +300,10 @@ class ActiveLearner():
         self.inferenceResults.encoder_values = loadFromFolder(
             [os.path.join(self.config['output_path'], 'aspp_features', x) for x in self.config['output_folders']]
         )
+        if self.config['diversity_method'] == 'distance_to_train':
+            self.inferenceResults.train_encoder_values = loadFromFolder(
+                [os.path.join(self.config['output_path'].split('/')[0]+'_train', 'aspp_features') for x in self.config['output_folders']]
+            )
 
         print(self.inferenceResults.encoder_values.shape)
         # pdb.set_trace()
@@ -336,13 +348,17 @@ class ActiveLearner():
         # self.cubemapHandler.reduceArray(
         #     self.inferenceResults.uncertainty_values)
 
-        if self.config['diversity_method'] == 'distance_to_train':
-            self.setTrainEncoderValues(self.train_encoder_values)
+        # if self.config['diversity_method'] == 'distance_to_train':
+        #     self.setTrainEncoderValues(self.train_encoder_values)
 
 
-        if self.config['diversity_method'] != None and self.config['diversity_method'] != "None":
+        if self.config['diversity_method'] == "cluster":
             self.getTopRecommendations(self.inferenceResults.uncertainty_values_mean, 
                 self.inferenceResults.encoder_values)
+        elif self.config['diversity_method'] == "distance_to_train":
+            self.getTopRecommendations(self.inferenceResults.uncertainty_values_mean, 
+                self.inferenceResults.encoder_values, 
+                train_encoder_values = self.inferenceResults.train_encoder_values)
         else:
             self.getTopRecommendations(self.inferenceResults.uncertainty_values_mean, None)
 

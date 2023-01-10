@@ -83,8 +83,17 @@ def get_splitted_dataset(config, split, input_folder_path, path_images, path_dep
     return path_images
 '''
 def get_transforms(config):
-
     transform_image = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])        
+
+    return transform_image, None, None
+
+def get_transforms(config):
+    resize = 512
+    transform_image = transforms.Compose([
+        transforms.Resize((resize, resize)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])        
