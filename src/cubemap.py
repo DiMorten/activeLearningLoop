@@ -295,45 +295,57 @@ def join_images(path_segmentation):
 
 
 def join_images_from_name(path_segmentation):
-    # list to store files
     face_filenames = []
     face_ids = ['negx.png', 'negy.png', 'negz.png', 'posx.png', 'posy.png', 'posz.png']
-    # Iterate directory
-    for face_id in face_ids:
-        face_filenames.append(path_segmentation + '_' + face_id)
-
-    print(face_filenames)
-
     vec_img = []
-    for face_filename in face_filenames:
-        #print(i)
-        vec_img.append(Image.open(face_filename))
 
-    name_map = [ \
-         ["", "posy", "", ""],
-         ["negz", "negx", "posz", "posx"],
-         ["", "negy", "", ""]]
+    # Iterate over 6 faces
+    for face_id in enumerate(face_ids):
+        face_filename = path_segmentation + '_' + face_id
+        vec_img.append(np.array(Image.open(face_filename)))
 
-    width, height = np.array(vec_img[0]).shape
-    print(width, height)
+    # print(face_filenames)
 
-    cube_size = np.zeros((width * 3 , width * 4))
-    print(cube_size.shape)
 
-    cube_size[0:width, width:width*2] = np.array(vec_img[4])
-    cube_size[width:width*2, 0:width] = np.array(vec_img[0])
-    cube_size[width:width*2, width:width*2] = np.array(vec_img[5])
-    cube_size[width:width*2, width*2:width*3] = np.array(vec_img[3])
-    cube_size[width:width*2, width*3:width*4] = np.array(vec_img[2])
-    cube_size[2*width:width*3, width:width*2] = np.array(vec_img[1])
+    # name_map = [ \
+    #      ["", "posy", "", ""],
+    #      ["negz", "negx", "posz", "posx"],
+    #      ["", "negy", "", ""]]
+    
+    width, height, channels = vec_img[0].shape
+    # print(width, height, channels)
+
+    cube_size = np.zeros((width * 3 , width * 4, channels), dtype  = np.uint8)
+
+    # cube_size[0:width, width:width*2] = vec_img[4]
+    cube_size[width:width*2, 0:width] = vec_img[0]
+    cube_size[width:width*2, width:width*2] = vec_img[5]
+    cube_size[width:width*2, width*2:width*3] = vec_img[3]
+    cube_size[width:width*2, width*3:width*4] = vec_img[2]
+    # cube_size[2*width:width*3, width:width*2] = vec_img[1]
+
+    cube_size[0:width, width:width*2] = np.rot90(vec_img[1], axes=(1,0))
+    cube_size[2*width:width*3, width:width*2] = np.rot90(vec_img[4], axes=(0,1))
+
     return cube_size
-def cubemap_to_2D(path_input, cubemap_keyword, filename_360, path_output_2D):
+def cubemap_to_2D(args):
+    path_input, cubemap_keyword, filename_360, path_output_2D = args
     cube_prediction = join_images_from_name(
         path_input + cubemap_keyword + '_' + filename_360)
     imageio.imwrite(path_output_2D + filename_360 +'.png', cube_prediction)    
 
+def cubemaps_to_2D(path_input, cubemap_keyword, filenames_360, path_output_2D):
+
+    args=[]
+    for filename_360 in filenames_360:
+        args.append((path_input, cubemap_keyword, filename_360, path_output_2D))
+    pool = mp.Pool(mp.cpu_count())
+    pool.map(cubemap_to_2D,args)
+
 def get_unique_from_cubemaps(filenames_360):
     return ['_'.join(i.split('_')[0:2]) for i in filenames_360]
+def get_unique_from_cubemaps2(filenames_360):
+    return ['_'.join(i.split('_')[1:3]) for i in filenames_360]
 
 def ignore_incomplete_cubemaps(filenames_360, path_input, faces, path_csv, keyword='cubemap'):
     filenames_cubemap_complete = []

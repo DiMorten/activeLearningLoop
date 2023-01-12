@@ -37,7 +37,7 @@ parser.add_argument('-data_split', type=int, default=None)
 
 
 args = parser.parse_args()
-print(vars(args))
+# print(vars(args))
 args = vars(args)
 
 

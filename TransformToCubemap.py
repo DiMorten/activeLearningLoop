@@ -13,7 +13,7 @@ parser.add_argument('-mode', type=str, default="xprojector", choices=['xprojecto
 
 
 args = parser.parse_args()
-print(vars(args))
+# print(vars(args))
 args = vars(args)
 if __name__ == "__main__":
     if args['mode'] == 'xprojector':
